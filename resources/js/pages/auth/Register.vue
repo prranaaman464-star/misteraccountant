@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Form, Head } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -6,9 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Eye, EyeOff } from 'lucide-vue-next';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
+
+const showPassword = ref(false);
+const showPasswordConfirm = ref(false);
+
+withDefaults(
+    defineProps<{
+        email?: string;
+    }>(),
+    { email: '' },
+);
 </script>
 
 <template>
@@ -49,36 +61,65 @@ import { store } from '@/routes/register';
                         :tabindex="2"
                         autocomplete="email"
                         name="email"
-                        placeholder="email@example.com"
+                        :placeholder="email || 'email@example.com'"
+                        :default-value="email"
                     />
                     <InputError :message="errors.email" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        required
-                        :tabindex="3"
-                        autocomplete="new-password"
-                        name="password"
-                        placeholder="Password"
-                    />
+                    <div class="relative">
+                        <Input
+                            id="password"
+                            :type="showPassword ? 'text' : 'password'"
+                            required
+                            :tabindex="3"
+                            autocomplete="new-password"
+                            name="password"
+                            placeholder="Password"
+                            class="pr-10"
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                            @click="showPassword = !showPassword"
+                        >
+                            <EyeOff v-if="showPassword" class="size-4" />
+                            <Eye v-else class="size-4" />
+                        </Button>
+                    </div>
                     <InputError :message="errors.password" />
                 </div>
 
                 <div class="grid gap-2">
                     <Label for="password_confirmation">Confirm password</Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        required
-                        :tabindex="4"
-                        autocomplete="new-password"
-                        name="password_confirmation"
-                        placeholder="Confirm password"
-                    />
+                    <div class="relative">
+                        <Input
+                            id="password_confirmation"
+                            :type="showPasswordConfirm ? 'text' : 'password'"
+                            required
+                            :tabindex="4"
+                            autocomplete="new-password"
+                            name="password_confirmation"
+                            placeholder="Confirm password"
+                            class="pr-10"
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                            :aria-label="showPasswordConfirm ? 'Hide password' : 'Show password'"
+                            @click="showPasswordConfirm = !showPasswordConfirm"
+                        >
+                            <EyeOff v-if="showPasswordConfirm" class="size-4" />
+                            <Eye v-else class="size-4" />
+                        </Button>
+                    </div>
                     <InputError :message="errors.password_confirmation" />
                 </div>
 

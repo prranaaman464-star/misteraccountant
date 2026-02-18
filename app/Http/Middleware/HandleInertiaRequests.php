@@ -35,11 +35,31 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $currentOrgId = session('current_organization_id');
+        $currentOrg = $currentOrgId && $user
+            ? $user->organizations()->find($currentOrgId)
+            : null;
+        $currentRole = $currentOrg ? $user->getRoleInOrganization($currentOrg) : null;
+        $canManageOrganization = $currentRole === 'owner' || $currentRole === 'admin';
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'organizations' => $user?->organizations()->with(['subscriptions' => function ($query) {
+                    $query->where('status', 'active')
+                        ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', now()))
+                        ->with('plan');
+                }])->get() ?? [],
+                'current_organization_id' => $currentOrgId,
+                'current_organization_role' => $currentRole,
+                'can_manage_organization' => $canManageOrganization,
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

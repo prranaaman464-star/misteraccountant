@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Form, Head } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -7,16 +8,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Eye, EyeOff } from 'lucide-vue-next';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
-defineProps<{
-    status?: string;
-    canResetPassword: boolean;
-    canRegister: boolean;
-}>();
+const showPassword = ref(false);
+
+withDefaults(
+    defineProps<{
+        status?: string;
+        canResetPassword: boolean;
+        canRegister: boolean;
+        email?: string;
+    }>(),
+    { email: '' },
+);
 </script>
 
 <template>
@@ -50,7 +58,8 @@ defineProps<{
                         autofocus
                         :tabindex="1"
                         autocomplete="email"
-                        placeholder="email@example.com"
+                        :placeholder="email || 'email@example.com'"
+                        :default-value="email"
                     />
                     <InputError :message="errors.email" />
                 </div>
@@ -67,15 +76,29 @@ defineProps<{
                             Forgot password?
                         </TextLink>
                     </div>
-                    <Input
-                        id="password"
-                        type="password"
-                        name="password"
-                        required
-                        :tabindex="2"
-                        autocomplete="current-password"
-                        placeholder="Password"
-                    />
+                    <div class="relative">
+                        <Input
+                            id="password"
+                            :type="showPassword ? 'text' : 'password'"
+                            name="password"
+                            required
+                            :tabindex="2"
+                            autocomplete="current-password"
+                            placeholder="Password"
+                            class="pr-10"
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                            @click="showPassword = !showPassword"
+                        >
+                            <EyeOff v-if="showPassword" class="size-4" />
+                            <Eye v-else class="size-4" />
+                        </Button>
+                    </div>
                     <InputError :message="errors.password" />
                 </div>
 
@@ -103,7 +126,7 @@ defineProps<{
                 v-if="canRegister"
             >
                 Don't have an account?
-                <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+                <TextLink :href="register()" :tabindex="6">Sign up</TextLink>
             </div>
         </Form>
     </AuthBase>

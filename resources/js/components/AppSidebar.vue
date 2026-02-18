@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import {
     Gem,
     LayoutGrid,
@@ -10,6 +10,7 @@ import {
     Wallet,
     FileText,
     Plus,
+    CreditCard,
 } from 'lucide-vue-next';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -27,6 +28,18 @@ import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
 import { edit as editProfile } from '@/routes/profile';
 import { dashboard } from '@/routes';
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage();
+const organizations = computed(() => (page.props.auth as { organizations?: Array<{ id: number; name: string }> })?.organizations ?? []);
+const currentOrganizationId = computed(() => (page.props.auth as { current_organization_id?: number })?.current_organization_id);
+
+function switchOrganization(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const id = target?.value;
+    if (id) router.put('/current-organization', { organization_id: Number(id) });
+}
 
 const manageNavItems: NavItem[] = [
     {
@@ -115,11 +128,17 @@ const manageNavItems: NavItem[] = [
         items: [
             { title: 'Manage Users', href: '/manage/users' },
             { title: 'Manage Memberships', href: '/manage/memberships' },
+            { title: 'Permissions', href: '/manage/permissions' },
         ],
     },
 ];
 
 const administrationNavItems: NavItem[] = [
+    {
+        title: 'My Plan',
+        href: '/plan',
+        icon: CreditCard,
+    },
     {
         title: 'Reports',
         href: '/reports',
@@ -151,6 +170,21 @@ const footerNavItems: NavItem[] = [
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem v-if="organizations.length > 1">
+                    <select
+                        :value="currentOrganizationId ?? ''"
+                        class="h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+                        @change="switchOrganization"
+                    >
+                        <option
+                            v-for="org in organizations"
+                            :key="org.id"
+                            :value="org.id"
+                        >
+                            {{ org.name }}
+                        </option>
+                    </select>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
