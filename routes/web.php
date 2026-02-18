@@ -11,6 +11,7 @@ use App\Http\Controllers\PlanDetailController;
 use App\Http\Controllers\PostAuthRedirectController;
 use App\Http\Controllers\RenewSubscriptionController;
 use App\Http\Middleware\RedirectIfNoOrganization;
+use App\Http\Controllers\InventoryItemsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -81,6 +82,15 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
     Route::delete('items/{item}', function () {
         return Inertia::render('inventory/Items/Destroy');
     })->name('inventory.items.destroy');
+Route::middleware(['auth', 'verified'])->prefix('inventory')->group(function () {
+    Route::get('items', [InventoryItemsController::class, 'index'])->name('inventory.items');
+    Route::get('items/create', [InventoryItemsController::class, 'create'])->name('inventory.items.create');
+    Route::post('items', [InventoryItemsController::class, 'store'])->name('inventory.items.store');
+    Route::post('categories', [InventoryItemsController::class, 'storeCategory'])->name('inventory.categories.store');
+    Route::get('items/{item}', [InventoryItemsController::class, 'show'])->name('inventory.items.show');
+    Route::get('items/{item}/edit', [InventoryItemsController::class, 'edit'])->name('inventory.items.edit');
+    Route::put('items/{item}', [InventoryItemsController::class, 'update'])->name('inventory.items.update');
+    Route::delete('items/{item}', [InventoryItemsController::class, 'destroy'])->name('inventory.items.destroy');
 });
 
 require __DIR__.'/settings.php';
