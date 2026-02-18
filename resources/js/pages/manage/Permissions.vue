@@ -66,7 +66,9 @@ function submitAddPermission() {
 }
 
 const page = usePage();
-const flash = page.props.flash as { success?: string; error?: string } | undefined;
+const flash = page.props.flash as
+    | { success?: string; error?: string }
+    | undefined;
 
 function keyFromName() {
     if (!form.name) return;
@@ -81,7 +83,9 @@ function keyFromName() {
     <Head title="Permissions" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+        <div
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+        >
             <div class="flex flex-col gap-6">
                 <div
                     v-if="flash?.success"
@@ -98,7 +102,9 @@ function keyFromName() {
                 <h1 class="text-xl font-semibold">Permissions</h1>
                 <p class="text-muted-foreground">
                     Organization: <strong>{{ organization.name }}</strong>
-                    <span v-if="plan" class="ml-2">· Plan: {{ plan.name }}</span>
+                    <span v-if="plan" class="ml-2"
+                        >· Plan: {{ plan.name }}</span
+                    >
                 </p>
 
                 <div class="rounded-lg border border-sidebar-border p-4">
@@ -112,24 +118,34 @@ function keyFromName() {
                             :key="role.key"
                             class="flex flex-col rounded border border-sidebar-border/70 p-3"
                         >
-                            <span class="font-medium capitalize">{{ role.name }}</span>
-                            <span class="text-sm text-muted-foreground">{{ role.description }}</span>
+                            <span class="font-medium capitalize">{{
+                                role.name
+                            }}</span>
+                            <span class="text-sm text-muted-foreground">{{
+                                role.description
+                            }}</span>
                         </li>
                     </ul>
                 </div>
 
                 <div class="rounded-lg border border-sidebar-border p-4">
-                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div
+                        class="mb-3 flex flex-wrap items-center justify-between gap-2"
+                    >
                         <div>
                             <h2 class="font-medium">Custom permissions</h2>
                             <p class="text-sm text-muted-foreground">
-                                Create permissions for this organization (e.g. reports.export,
-                                inventory.edit).
+                                Create permissions for this organization (e.g.
+                                reports.export, inventory.edit).
                             </p>
                         </div>
                         <Dialog v-model:open="addPermissionOpen">
                             <DialogTrigger as-child>
-                                <Button v-if="canManageOrganization" variant="default" size="sm">
+                                <Button
+                                    v-if="canManageOrganization"
+                                    variant="default"
+                                    size="sm"
+                                >
                                     Add permission
                                 </Button>
                             </DialogTrigger>
@@ -137,11 +153,14 @@ function keyFromName() {
                                 <DialogHeader>
                                     <DialogTitle>Create permission</DialogTitle>
                                     <DialogDescription>
-                                        Add a custom permission. Use a unique key (e.g.
-                                        reports.export).
+                                        Add a custom permission. Use a unique
+                                        key (e.g. reports.export).
                                     </DialogDescription>
                                 </DialogHeader>
-                                <form @submit.prevent="submitAddPermission" class="space-y-4">
+                                <form
+                                    @submit.prevent="submitAddPermission"
+                                    class="space-y-4"
+                                >
                                     <div class="grid gap-2">
                                         <Label for="perm-name">Name</Label>
                                         <Input
@@ -152,7 +171,9 @@ function keyFromName() {
                                             placeholder="Export reports"
                                             @blur="keyFromName"
                                         />
-                                        <InputError :message="form.errors.name" />
+                                        <InputError
+                                            :message="form.errors.name"
+                                        />
                                     </div>
                                     <div class="grid gap-2">
                                         <Label for="perm-key">Key</Label>
@@ -163,10 +184,14 @@ function keyFromName() {
                                             required
                                             placeholder="reports.export"
                                         />
-                                        <InputError :message="form.errors.key" />
-                                        <p class="text-xs text-muted-foreground">
-                                            Lowercase letters, numbers, dots, underscores, hyphens
-                                            only.
+                                        <InputError
+                                            :message="form.errors.key"
+                                        />
+                                        <p
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Lowercase letters, numbers, dots,
+                                            underscores, hyphens only.
                                         </p>
                                     </div>
                                     <DialogFooter>
@@ -177,7 +202,10 @@ function keyFromName() {
                                         >
                                             Cancel
                                         </Button>
-                                        <Button type="submit" :disabled="form.processing">
+                                        <Button
+                                            type="submit"
+                                            :disabled="form.processing"
+                                        >
                                             Create permission
                                         </Button>
                                     </DialogFooter>
@@ -192,7 +220,9 @@ function keyFromName() {
                             class="flex items-center justify-between rounded border border-sidebar-border/70 p-3"
                         >
                             <span class="font-medium">{{ perm.name }}</span>
-                            <code class="text-sm text-muted-foreground">{{ perm.key }}</code>
+                            <code class="text-sm text-muted-foreground">{{
+                                perm.key
+                            }}</code>
                         </li>
                     </ul>
                     <p v-else class="text-sm text-muted-foreground">
@@ -203,14 +233,20 @@ function keyFromName() {
                 <div class="rounded-lg border border-sidebar-border p-4">
                     <h2 class="mb-2 font-medium">Modules (from your plan)</h2>
                     <p class="mb-3 text-sm text-muted-foreground">
-                        These modules are available in your current plan. Staff and above can access
-                        them based on role.
+                        These modules are available in your current plan. Staff
+                        and above can access them based on role.
                     </p>
-                    <ul v-if="modules.length" class="list-inside list-disc space-y-1 text-sm">
-                        <li v-for="mod in modules" :key="mod.id">{{ mod.name }}</li>
+                    <ul
+                        v-if="modules.length"
+                        class="list-inside list-disc space-y-1 text-sm"
+                    >
+                        <li v-for="mod in modules" :key="mod.id">
+                            {{ mod.name }}
+                        </li>
                     </ul>
                     <p v-else class="text-sm text-muted-foreground">
-                        No modules in current plan. Upgrade to get more features.
+                        No modules in current plan. Upgrade to get more
+                        features.
                     </p>
                 </div>
             </div>

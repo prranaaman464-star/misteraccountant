@@ -1,31 +1,20 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { Form, Head, Link, router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { onClickOutside } from '@vueuse/core';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { ChevronDown, Plus, Search } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { store } from '@/actions/App/Http/Controllers/InventoryItemsController';
+import AlertError from '@/components/AlertError.vue';
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import AppLayout from '@/layouts/AppLayout.vue';
-import InputError from '@/components/InputError.vue';
-import AlertError from '@/components/AlertError.vue';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import type { BreadcrumbItem } from '@/types';
-import { dashboard } from '@/routes';
-import inventory from '@/routes/inventory';
-import { store } from '@/actions/App/Http/Controllers/InventoryItemsController';
 import {
     Dialog,
     DialogClose,
@@ -35,7 +24,13 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { ChevronDown, Plus, Search } from 'lucide-vue-next';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import inventory from '@/routes/inventory';
+import type { BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Home', href: dashboard().url },
@@ -98,7 +93,8 @@ const page = usePage<{ categories?: { id: number; name: string }[] }>();
 const categoryModalOpen = ref(false);
 const newCategoryName = ref('');
 const categories = ref<{ id: string; name: string }[]>(
-    page.props.categories?.map((c) => ({ id: String(c.id), name: c.name })) ?? [],
+    page.props.categories?.map((c) => ({ id: String(c.id), name: c.name })) ??
+        [],
 );
 const selectedCategory = ref('');
 const categoryDropdownOpen = ref(false);
@@ -110,9 +106,7 @@ const categoryError = ref('');
 const filteredCategories = computed(() => {
     const q = categorySearchQuery.value.trim().toLowerCase();
     if (!q) return categories.value;
-    return categories.value.filter((cat) =>
-        cat.name.toLowerCase().includes(q),
-    );
+    return categories.value.filter((cat) => cat.name.toLowerCase().includes(q));
 });
 
 const selectedCategoryLabel = computed(() => {
@@ -135,13 +129,16 @@ async function addCategory(): Promise<void> {
     categoryError.value = '';
 
     try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        
+        const csrfToken =
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') || '';
+
         const response = await fetch('/inventory/categories', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'X-CSRF-TOKEN': csrfToken,
                 'X-Requested-With': 'XMLHttpRequest',
             },
@@ -150,12 +147,15 @@ async function addCategory(): Promise<void> {
 
         if (!response.ok) {
             const errorData = await response.json();
-            const errorMessage = errorData.message || errorData.errors?.name?.[0] || 'Failed to save category';
+            const errorMessage =
+                errorData.message ||
+                errorData.errors?.name?.[0] ||
+                'Failed to save category';
             throw new Error(errorMessage);
         }
 
         const category = await response.json();
-        
+
         // Add the new category to the list and sort by name
         categories.value.push({ id: String(category.id), name: category.name });
         categories.value.sort((a, b) => a.name.localeCompare(b.name));
@@ -163,14 +163,18 @@ async function addCategory(): Promise<void> {
         newCategoryNameForSubmit.value = '';
         newCategoryName.value = '';
         categoryModalOpen.value = false;
-        
+
         // Update page props to reflect the new category
         if (page.props.categories) {
-            page.props.categories.push({ id: category.id, name: category.name });
+            page.props.categories.push({
+                id: category.id,
+                name: category.name,
+            });
             page.props.categories.sort((a, b) => a.name.localeCompare(b.name));
         }
     } catch (error) {
-        categoryError.value = error instanceof Error ? error.message : 'Failed to save category';
+        categoryError.value =
+            error instanceof Error ? error.message : 'Failed to save category';
     } finally {
         savingCategory.value = false;
     }
@@ -193,8 +197,12 @@ onClickOutside(categoryDropdownRef, () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-6">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h1 class="text-2xl font-semibold tracking-tight">Create Item</h1>
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+                <h1 class="text-2xl font-semibold tracking-tight">
+                    Create Item
+                </h1>
                 <Link :href="inventory.items.url()">
                     <Button variant="outline" size="default">Cancel</Button>
                 </Link>
@@ -230,187 +238,284 @@ onClickOutside(categoryDropdownRef, () => {
                         </CardHeader>
                         <CollapsibleContent>
                             <CardContent>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div class="md:col-span-2">
-                                <Label for="name">Item Name</Label>
-                                <Input
-                                    id="name"
-                                    name="name"
-                                    class="mt-1"
-                                    required
-                                    maxlength="255"
-                                    placeholder="Enter item name"
-                                />
-                                <InputError :message="errors.name" />
-                            </div>
-                            <div>
-                                <Label for="item_code">Item Code / SKU</Label>
-                                <Input
-                                    id="item_code"
-                                    name="item_code"
-                                    class="mt-1"
-                                    maxlength="100"
-                                    placeholder="e.g. SKU-001"
-                                />
-                                <InputError :message="errors.item_code" />
-                            </div>
-                            <div>
-                                <Label for="item_category">Item Category</Label>
-                                <div
-                                    ref="categoryDropdownRef"
-                                    class="relative mt-1"
-                                >
-                                    <input
-                                        type="hidden"
-                                        name="item_category"
-                                        :value="selectedCategoryIsNew ? '' : selectedCategory"
-                                    />
-                                    <input
-                                        type="hidden"
-                                        name="new_category_name"
-                                        :value="selectedCategoryIsNew ? selectedCategoryLabel : ''"
-                                    />
-                                    <button
-                                        id="item_category"
-                                        type="button"
-                                        aria-haspopup="listbox"
-                                        :aria-expanded="categoryDropdownOpen"
-                                        class="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 flex h-9 w-full items-center justify-between gap-2 rounded-md border px-3 py-1 text-left text-base shadow-xs focus-visible:outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                        @click="categoryDropdownOpen = !categoryDropdownOpen"
-                                    >
-                                        <span
-                                            class="min-w-0 flex-1 truncate"
-                                            :class="{ 'text-muted-foreground': !selectedCategoryLabel }"
-                                        >
-                                            {{ selectedCategoryLabel || 'Select Category' }}
-                                        </span>
-                                        <ChevronDown
-                                            class="size-4 shrink-0 text-muted-foreground transition-transform"
-                                            :class="{ 'rotate-180': categoryDropdownOpen }"
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="md:col-span-2">
+                                        <Label for="name">Item Name</Label>
+                                        <Input
+                                            id="name"
+                                            name="name"
+                                            class="mt-1"
+                                            required
+                                            maxlength="255"
+                                            placeholder="Enter item name"
                                         />
-                                    </button>
-                                    <Transition
-                                        enter-active-class="animate-in fade-in-0 zoom-in-95"
-                                        leave-active-class="animate-out fade-out-0 zoom-out-95"
-                                    >
-                                        <div
-                                            v-show="categoryDropdownOpen"
-                                            class="border-input bg-popover text-popover-foreground absolute top-full z-50 mt-1 flex w-full max-h-72 flex-col overflow-hidden rounded-md border shadow-md"
+                                        <InputError :message="errors.name" />
+                                    </div>
+                                    <div>
+                                        <Label for="item_code"
+                                            >Item Code / SKU</Label
                                         >
-                                            <div class="border-input flex shrink-0 items-center gap-2 border-b bg-muted/30 px-2 py-1.5">
-                                                <Search class="size-4 shrink-0 text-muted-foreground" />
-                                                <input
-                                                    v-model="categorySearchQuery"
-                                                    type="text"
-                                                    placeholder="Search"
-                                                    class="placeholder:text-muted-foreground h-8 min-w-0 flex-1 rounded border-0 bg-transparent px-1 text-sm outline-none focus-visible:ring-0"
-                                                    @keydown.stop
-                                                />
-                                            </div>
-                                            <div class="min-h-0 flex-1 overflow-y-auto p-1">
-                                                <button
-                                                    v-for="cat in filteredCategories"
-                                                    :key="cat.id"
-                                                    type="button"
-                                                    role="option"
-                                                    :aria-selected="selectedCategory === cat.id"
-                                                    class="hover:bg-accent focus:bg-accent w-full rounded-md px-2 py-1.5 text-left text-sm outline-none"
-                                                    :class="{
-                                                        'bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90': selectedCategory === cat.id,
-                                                    }"
-                                                    @click="selectedCategory = cat.id; categoryDropdownOpen = false"
-                                                >
-                                                    {{ cat.name }}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    class="hover:bg-accent focus:bg-accent text-primary flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none"
-                                                    @click="openNewCategoryDialog"
-                                                >
-                                                    <Plus class="size-4 shrink-0" />
-                                                    New Category
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </Transition>
-                                </div>
-                                <Dialog v-model:open="categoryModalOpen">
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Add Category</DialogTitle>
-                                        </DialogHeader>
-                                        <div class="grid gap-4 py-4">
-                                            <div class="grid gap-2">
-                                                <Label for="new_category">Category Name</Label>
-                                                <Input
-                                                    id="new_category"
-                                                    v-model="newCategoryName"
-                                                    placeholder="Enter category name"
-                                                    :disabled="savingCategory"
-                                                    @keydown.enter.prevent="addCategory"
-                                                />
-                                                <InputError v-if="categoryError" :message="categoryError" />
-                                            </div>
-                                        </div>
-                                        <DialogFooter>
-                                            <DialogClose as-child>
-                                                <Button type="button" variant="outline" :disabled="savingCategory">Cancel</Button>
-                                            </DialogClose>
-                                            <Button
+                                        <Input
+                                            id="item_code"
+                                            name="item_code"
+                                            class="mt-1"
+                                            maxlength="100"
+                                            placeholder="e.g. SKU-001"
+                                        />
+                                        <InputError
+                                            :message="errors.item_code"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="item_category"
+                                            >Item Category</Label
+                                        >
+                                        <div
+                                            ref="categoryDropdownRef"
+                                            class="relative mt-1"
+                                        >
+                                            <input
+                                                type="hidden"
+                                                name="item_category"
+                                                :value="
+                                                    selectedCategoryIsNew
+                                                        ? ''
+                                                        : selectedCategory
+                                                "
+                                            />
+                                            <input
+                                                type="hidden"
+                                                name="new_category_name"
+                                                :value="
+                                                    selectedCategoryIsNew
+                                                        ? selectedCategoryLabel
+                                                        : ''
+                                                "
+                                            />
+                                            <button
+                                                id="item_category"
                                                 type="button"
-                                                :disabled="!newCategoryName.trim() || savingCategory"
-                                                @click="addCategory"
+                                                aria-haspopup="listbox"
+                                                :aria-expanded="
+                                                    categoryDropdownOpen
+                                                "
+                                                class="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1 text-left text-base shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                                @click="
+                                                    categoryDropdownOpen =
+                                                        !categoryDropdownOpen
+                                                "
                                             >
-                                                <Spinner v-if="savingCategory" />
-                                                {{ savingCategory ? 'Saving...' : 'Add Category' }}
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                                <InputError :message="errors.item_category" />
-                            </div>
-                            <div>
-                                <Label for="sub_category">Sub-Category</Label>
-                                <Input
-                                    id="sub_category"
-                                    name="sub_category"
-                                    class="mt-1"
-                                    maxlength="100"
-                                    placeholder="Sub-category"
-                                />
-                            </div>
-                            <div>
-                                <Label for="brand">Brand</Label>
-                                <Input
-                                    id="brand"
-                                    name="brand"
-                                    class="mt-1"
-                                    maxlength="100"
-                                    placeholder="Brand"
-                                />
-                            </div>
-                            <div>
-                                <Label for="model_no">Model No</Label>
-                                <Input
-                                    id="model_no"
-                                    name="model_no"
-                                    class="mt-1"
-                                    maxlength="100"
-                                    placeholder="Model number"
-                                />
-                            </div>
-                            <div class="md:col-span-2">
-                                <Label for="description">Description</Label>
-                                <textarea
-                                    id="description"
-                                    name="description"
-                                    rows="3"
-                                    class="border-input bg-transparent placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 mt-1 flex h-20 w-full rounded-md border px-3 py-2 text-base shadow-xs focus-visible:outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                    placeholder="Item description"
-                                />
-                                <InputError :message="errors.description" />
-                            </div>
-                        </div>
+                                                <span
+                                                    class="min-w-0 flex-1 truncate"
+                                                    :class="{
+                                                        'text-muted-foreground':
+                                                            !selectedCategoryLabel,
+                                                    }"
+                                                >
+                                                    {{
+                                                        selectedCategoryLabel ||
+                                                        'Select Category'
+                                                    }}
+                                                </span>
+                                                <ChevronDown
+                                                    class="size-4 shrink-0 text-muted-foreground transition-transform"
+                                                    :class="{
+                                                        'rotate-180':
+                                                            categoryDropdownOpen,
+                                                    }"
+                                                />
+                                            </button>
+                                            <Transition
+                                                enter-active-class="animate-in fade-in-0 zoom-in-95"
+                                                leave-active-class="animate-out fade-out-0 zoom-out-95"
+                                            >
+                                                <div
+                                                    v-show="
+                                                        categoryDropdownOpen
+                                                    "
+                                                    class="absolute top-full z-50 mt-1 flex max-h-72 w-full flex-col overflow-hidden rounded-md border border-input bg-popover text-popover-foreground shadow-md"
+                                                >
+                                                    <div
+                                                        class="flex shrink-0 items-center gap-2 border-b border-input bg-muted/30 px-2 py-1.5"
+                                                    >
+                                                        <Search
+                                                            class="size-4 shrink-0 text-muted-foreground"
+                                                        />
+                                                        <input
+                                                            v-model="
+                                                                categorySearchQuery
+                                                            "
+                                                            type="text"
+                                                            placeholder="Search"
+                                                            class="h-8 min-w-0 flex-1 rounded border-0 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0"
+                                                            @keydown.stop
+                                                        />
+                                                    </div>
+                                                    <div
+                                                        class="min-h-0 flex-1 overflow-y-auto p-1"
+                                                    >
+                                                        <button
+                                                            v-for="cat in filteredCategories"
+                                                            :key="cat.id"
+                                                            type="button"
+                                                            role="option"
+                                                            :aria-selected="
+                                                                selectedCategory ===
+                                                                cat.id
+                                                            "
+                                                            class="w-full rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-accent focus:bg-accent"
+                                                            :class="{
+                                                                'bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90':
+                                                                    selectedCategory ===
+                                                                    cat.id,
+                                                            }"
+                                                            @click="
+                                                                selectedCategory =
+                                                                    cat.id;
+                                                                categoryDropdownOpen = false;
+                                                            "
+                                                        >
+                                                            {{ cat.name }}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-primary outline-none hover:bg-accent focus:bg-accent"
+                                                            @click="
+                                                                openNewCategoryDialog
+                                                            "
+                                                        >
+                                                            <Plus
+                                                                class="size-4 shrink-0"
+                                                            />
+                                                            New Category
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </Transition>
+                                        </div>
+                                        <Dialog
+                                            v-model:open="categoryModalOpen"
+                                        >
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle
+                                                        >Add
+                                                        Category</DialogTitle
+                                                    >
+                                                </DialogHeader>
+                                                <div class="grid gap-4 py-4">
+                                                    <div class="grid gap-2">
+                                                        <Label
+                                                            for="new_category"
+                                                            >Category
+                                                            Name</Label
+                                                        >
+                                                        <Input
+                                                            id="new_category"
+                                                            v-model="
+                                                                newCategoryName
+                                                            "
+                                                            placeholder="Enter category name"
+                                                            :disabled="
+                                                                savingCategory
+                                                            "
+                                                            @keydown.enter.prevent="
+                                                                addCategory
+                                                            "
+                                                        />
+                                                        <InputError
+                                                            v-if="categoryError"
+                                                            :message="
+                                                                categoryError
+                                                            "
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <DialogClose as-child>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            :disabled="
+                                                                savingCategory
+                                                            "
+                                                            >Cancel</Button
+                                                        >
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="button"
+                                                        :disabled="
+                                                            !newCategoryName.trim() ||
+                                                            savingCategory
+                                                        "
+                                                        @click="addCategory"
+                                                    >
+                                                        <Spinner
+                                                            v-if="
+                                                                savingCategory
+                                                            "
+                                                        />
+                                                        {{
+                                                            savingCategory
+                                                                ? 'Saving...'
+                                                                : 'Add Category'
+                                                        }}
+                                                    </Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                        <InputError
+                                            :message="errors.item_category"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="sub_category"
+                                            >Sub-Category</Label
+                                        >
+                                        <Input
+                                            id="sub_category"
+                                            name="sub_category"
+                                            class="mt-1"
+                                            maxlength="100"
+                                            placeholder="Sub-category"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="brand">Brand</Label>
+                                        <Input
+                                            id="brand"
+                                            name="brand"
+                                            class="mt-1"
+                                            maxlength="100"
+                                            placeholder="Brand"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="model_no">Model No</Label>
+                                        <Input
+                                            id="model_no"
+                                            name="model_no"
+                                            class="mt-1"
+                                            maxlength="100"
+                                            placeholder="Model number"
+                                        />
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <Label for="description"
+                                            >Description</Label
+                                        >
+                                        <textarea
+                                            id="description"
+                                            name="description"
+                                            rows="3"
+                                            class="mt-1 flex h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                            placeholder="Item description"
+                                        />
+                                        <InputError
+                                            :message="errors.description"
+                                        />
+                                    </div>
+                                </div>
                             </CardContent>
                         </CollapsibleContent>
                     </Card>
@@ -425,7 +530,10 @@ onClickOutside(categoryDropdownRef, () => {
                                     type="button"
                                     class="flex w-full items-center justify-between text-left"
                                 >
-                                    <CardTitle>Tax & GST Details (India Specific)</CardTitle>
+                                    <CardTitle
+                                        >Tax & GST Details (India
+                                        Specific)</CardTitle
+                                    >
                                     <ChevronDown
                                         class="size-5 shrink-0 transition-transform duration-200"
                                         :class="{ 'rotate-180': taxOpen }"
@@ -435,96 +543,128 @@ onClickOutside(categoryDropdownRef, () => {
                         </CardHeader>
                         <CollapsibleContent>
                             <CardContent>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div class="flex items-center gap-2">
-                                <input type="hidden" name="gst_applicable" :value="gstApplicable ? '1' : '0'" />
-                                <Checkbox
-                                    id="gst_applicable"
-                                    :checked="gstApplicable"
-                                    @update:checked="(val: boolean | 'indeterminate') => (gstApplicable = val === true)"
-                                />
-                                <Label for="gst_applicable" class="cursor-pointer font-normal">GST Applicable</Label>
-                            </div>
-                            <template v-if="gstApplicable">
-                                <div>
-                                    <Label for="hsn_sac_code">HSN / SAC Code</Label>
-                                    <Input
-                                        id="hsn_sac_code"
-                                        name="hsn_sac_code"
-                                        class="mt-1"
-                                        maxlength="50"
-                                        placeholder="e.g. 9983"
-                                    />
-                                    <InputError :message="errors.hsn_sac_code" />
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="hidden"
+                                            name="gst_applicable"
+                                            :value="gstApplicable ? '1' : '0'"
+                                        />
+                                        <Checkbox
+                                            id="gst_applicable"
+                                            :checked="gstApplicable"
+                                            @update:checked="
+                                                (
+                                                    val:
+                                                        | boolean
+                                                        | 'indeterminate',
+                                                ) =>
+                                                    (gstApplicable =
+                                                        val === true)
+                                            "
+                                        />
+                                        <Label
+                                            for="gst_applicable"
+                                            class="cursor-pointer font-normal"
+                                            >GST Applicable</Label
+                                        >
+                                    </div>
+                                    <template v-if="gstApplicable">
+                                        <div>
+                                            <Label for="hsn_sac_code"
+                                                >HSN / SAC Code</Label
+                                            >
+                                            <Input
+                                                id="hsn_sac_code"
+                                                name="hsn_sac_code"
+                                                class="mt-1"
+                                                maxlength="50"
+                                                placeholder="e.g. 9983"
+                                            />
+                                            <InputError
+                                                :message="errors.hsn_sac_code"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label for="gst_rate"
+                                                >GST Rate (%)</Label
+                                            >
+                                            <Input
+                                                id="gst_rate"
+                                                name="gst_rate"
+                                                type="number"
+                                                class="mt-1"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                placeholder="0"
+                                            />
+                                            <InputError
+                                                :message="errors.gst_rate"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label for="cgst_rate"
+                                                >CGST Rate (%)</Label
+                                            >
+                                            <Input
+                                                id="cgst_rate"
+                                                name="cgst_rate"
+                                                type="number"
+                                                class="mt-1"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label for="sgst_rate"
+                                                >SGST Rate (%)</Label
+                                            >
+                                            <Input
+                                                id="sgst_rate"
+                                                name="sgst_rate"
+                                                type="number"
+                                                class="mt-1"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label for="igst_rate"
+                                                >IGST Rate (%)</Label
+                                            >
+                                            <Input
+                                                id="igst_rate"
+                                                name="igst_rate"
+                                                type="number"
+                                                class="mt-1"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label for="cess_rate"
+                                                >Cess Rate (%)</Label
+                                            >
+                                            <Input
+                                                id="cess_rate"
+                                                name="cess_rate"
+                                                type="number"
+                                                class="mt-1"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </template>
                                 </div>
-                                <div>
-                                    <Label for="gst_rate">GST Rate (%)</Label>
-                                    <Input
-                                        id="gst_rate"
-                                        name="gst_rate"
-                                        type="number"
-                                        class="mt-1"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                        placeholder="0"
-                                    />
-                                    <InputError :message="errors.gst_rate" />
-                                </div>
-                                <div>
-                                    <Label for="cgst_rate">CGST Rate (%)</Label>
-                                    <Input
-                                        id="cgst_rate"
-                                        name="cgst_rate"
-                                        type="number"
-                                        class="mt-1"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                        placeholder="0"
-                                    />
-                                </div>
-                                <div>
-                                    <Label for="sgst_rate">SGST Rate (%)</Label>
-                                    <Input
-                                        id="sgst_rate"
-                                        name="sgst_rate"
-                                        type="number"
-                                        class="mt-1"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                        placeholder="0"
-                                    />
-                                </div>
-                                <div>
-                                    <Label for="igst_rate">IGST Rate (%)</Label>
-                                    <Input
-                                        id="igst_rate"
-                                        name="igst_rate"
-                                        type="number"
-                                        class="mt-1"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                        placeholder="0"
-                                    />
-                                </div>
-                                <div>
-                                    <Label for="cess_rate">Cess Rate (%)</Label>
-                                    <Input
-                                        id="cess_rate"
-                                        name="cess_rate"
-                                        type="number"
-                                        class="mt-1"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </template>
-                        </div>
                             </CardContent>
                         </CollapsibleContent>
                     </Card>
@@ -549,121 +689,159 @@ onClickOutside(categoryDropdownRef, () => {
                         </CardHeader>
                         <CollapsibleContent>
                             <CardContent>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <Label for="purchase_price">Purchase Price (₹)</Label>
-                                <Input
-                                    id="purchase_price"
-                                    name="purchase_price"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                                <InputError :message="errors.purchase_price" />
-                            </div>
-                            <div>
-                                <Label for="sale_price">Sale Price (₹)</Label>
-                                <Input
-                                    id="sale_price"
-                                    name="sale_price"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                                <InputError :message="errors.sale_price" />
-                            </div>
-                            <div>
-                                <Label for="mrp">MRP (₹)</Label>
-                                <Input
-                                    id="mrp"
-                                    name="mrp"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="minimum_sale_price">Minimum Sale Price (₹)</Label>
-                                <Input
-                                    id="minimum_sale_price"
-                                    name="minimum_sale_price"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="discount_percent_allowed">Discount % Allowed</Label>
-                                <Input
-                                    id="discount_percent_allowed"
-                                    name="discount_percent_allowed"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    max="100"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <input type="hidden" name="price_inclusive_of_tax" :value="priceInclusiveOfTax ? '1' : '0'" />
-                                <Checkbox
-                                    id="price_inclusive_of_tax"
-                                    :checked="priceInclusiveOfTax"
-                                    @update:checked="(val: boolean | 'indeterminate') => (priceInclusiveOfTax = val === true)"
-                                />
-                                <Label for="price_inclusive_of_tax" class="cursor-pointer font-normal">
-                                    Price Inclusive of Tax
-                                </Label>
-                            </div>
-                            <p class="md:col-span-2 text-sm text-muted-foreground">
-                                Toggle ON for Inclusive, OFF for Exclusive
-                            </p>
-                            <div>
-                                <Label for="retail_price">Retail Price (₹)</Label>
-                                <Input
-                                    id="retail_price"
-                                    name="retail_price"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="wholesale_price">Wholesale Price (₹)</Label>
-                                <Input
-                                    id="wholesale_price"
-                                    name="wholesale_price"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="dealer_price">Dealer Price (₹)</Label>
-                                <Input
-                                    id="dealer_price"
-                                    name="dealer_price"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                        </div>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <Label for="purchase_price"
+                                            >Purchase Price (₹)</Label
+                                        >
+                                        <Input
+                                            id="purchase_price"
+                                            name="purchase_price"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                        <InputError
+                                            :message="errors.purchase_price"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="sale_price"
+                                            >Sale Price (₹)</Label
+                                        >
+                                        <Input
+                                            id="sale_price"
+                                            name="sale_price"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                        <InputError
+                                            :message="errors.sale_price"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="mrp">MRP (₹)</Label>
+                                        <Input
+                                            id="mrp"
+                                            name="mrp"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="minimum_sale_price"
+                                            >Minimum Sale Price (₹)</Label
+                                        >
+                                        <Input
+                                            id="minimum_sale_price"
+                                            name="minimum_sale_price"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="discount_percent_allowed"
+                                            >Discount % Allowed</Label
+                                        >
+                                        <Input
+                                            id="discount_percent_allowed"
+                                            name="discount_percent_allowed"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="hidden"
+                                            name="price_inclusive_of_tax"
+                                            :value="
+                                                priceInclusiveOfTax ? '1' : '0'
+                                            "
+                                        />
+                                        <Checkbox
+                                            id="price_inclusive_of_tax"
+                                            :checked="priceInclusiveOfTax"
+                                            @update:checked="
+                                                (
+                                                    val:
+                                                        | boolean
+                                                        | 'indeterminate',
+                                                ) =>
+                                                    (priceInclusiveOfTax =
+                                                        val === true)
+                                            "
+                                        />
+                                        <Label
+                                            for="price_inclusive_of_tax"
+                                            class="cursor-pointer font-normal"
+                                        >
+                                            Price Inclusive of Tax
+                                        </Label>
+                                    </div>
+                                    <p
+                                        class="text-sm text-muted-foreground md:col-span-2"
+                                    >
+                                        Toggle ON for Inclusive, OFF for
+                                        Exclusive
+                                    </p>
+                                    <div>
+                                        <Label for="retail_price"
+                                            >Retail Price (₹)</Label
+                                        >
+                                        <Input
+                                            id="retail_price"
+                                            name="retail_price"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="wholesale_price"
+                                            >Wholesale Price (₹)</Label
+                                        >
+                                        <Input
+                                            id="wholesale_price"
+                                            name="wholesale_price"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="dealer_price"
+                                            >Dealer Price (₹)</Label
+                                        >
+                                        <Input
+                                            id="dealer_price"
+                                            name="dealer_price"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
                             </CardContent>
                         </CollapsibleContent>
                     </Card>
@@ -688,97 +866,119 @@ onClickOutside(categoryDropdownRef, () => {
                         </CardHeader>
                         <CollapsibleContent>
                             <CardContent>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <Label for="primary_unit">Primary Unit</Label>
-                                <select
-                                    id="primary_unit"
-                                    name="primary_unit"
-                                    class="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 mt-1 flex h-9 w-full rounded-md border px-3 py-1 text-base shadow-xs focus-visible:outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                >
-                                    <option
-                                        v-for="(label, value) in primaryUnitOptions"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ label }}
-                                    </option>
-                                </select>
-                                <InputError :message="errors.primary_unit" />
-                            </div>
-                            <div>
-                                <Label for="conversion_factor">Conversion Factor</Label>
-                                <Input
-                                    id="conversion_factor"
-                                    name="conversion_factor"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.0001"
-                                    placeholder="e.g. 1 Box = 10 pcs"
-                                />
-                                <p class="mt-1 text-xs text-muted-foreground">e.g., 1 Box = 10 pcs</p>
-                            </div>
-                            <div>
-                                <Label for="opening_stock_quantity">Opening Stock Quantity</Label>
-                                <Input
-                                    id="opening_stock_quantity"
-                                    name="opening_stock_quantity"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.0001"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="opening_stock_value">Opening Stock Value (₹)</Label>
-                                <Input
-                                    id="opening_stock_value"
-                                    name="opening_stock_value"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="stock_quantity">Current Stock Quantity</Label>
-                                <Input
-                                    id="stock_quantity"
-                                    name="stock_quantity"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="reorder_level">Reorder Level</Label>
-                                <Input
-                                    id="reorder_level"
-                                    name="reorder_level"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.0001"
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <Label for="minimum_stock_level">Minimum Stock Level</Label>
-                                <Input
-                                    id="minimum_stock_level"
-                                    name="minimum_stock_level"
-                                    type="number"
-                                    class="mt-1"
-                                    min="0"
-                                    step="0.0001"
-                                    placeholder="0"
-                                />
-                            </div>
-                        </div>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <Label for="primary_unit"
+                                            >Primary Unit</Label
+                                        >
+                                        <select
+                                            id="primary_unit"
+                                            name="primary_unit"
+                                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                        >
+                                            <option
+                                                v-for="(
+                                                    label, value
+                                                ) in primaryUnitOptions"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{ label }}
+                                            </option>
+                                        </select>
+                                        <InputError
+                                            :message="errors.primary_unit"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="conversion_factor"
+                                            >Conversion Factor</Label
+                                        >
+                                        <Input
+                                            id="conversion_factor"
+                                            name="conversion_factor"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.0001"
+                                            placeholder="e.g. 1 Box = 10 pcs"
+                                        />
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground"
+                                        >
+                                            e.g., 1 Box = 10 pcs
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <Label for="opening_stock_quantity"
+                                            >Opening Stock Quantity</Label
+                                        >
+                                        <Input
+                                            id="opening_stock_quantity"
+                                            name="opening_stock_quantity"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.0001"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="opening_stock_value"
+                                            >Opening Stock Value (₹)</Label
+                                        >
+                                        <Input
+                                            id="opening_stock_value"
+                                            name="opening_stock_value"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="stock_quantity"
+                                            >Current Stock Quantity</Label
+                                        >
+                                        <Input
+                                            id="stock_quantity"
+                                            name="stock_quantity"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="reorder_level"
+                                            >Reorder Level</Label
+                                        >
+                                        <Input
+                                            id="reorder_level"
+                                            name="reorder_level"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.0001"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="minimum_stock_level"
+                                            >Minimum Stock Level</Label
+                                        >
+                                        <Input
+                                            id="minimum_stock_level"
+                                            name="minimum_stock_level"
+                                            type="number"
+                                            class="mt-1"
+                                            min="0"
+                                            step="0.0001"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
                             </CardContent>
                         </CollapsibleContent>
                     </Card>
@@ -803,83 +1003,157 @@ onClickOutside(categoryDropdownRef, () => {
                         </CardHeader>
                         <CollapsibleContent>
                             <CardContent>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div class="flex items-center gap-2">
-                                <input type="hidden" name="batch_enabled" :value="batchEnabled ? '1' : '0'" />
-                                <Checkbox
-                                    id="batch_enabled"
-                                    :checked="batchEnabled"
-                                    @update:checked="(val: boolean | 'indeterminate') => (batchEnabled = val === true)"
-                                />
-                                <Label for="batch_enabled" class="cursor-pointer font-normal">Batch Enabled</Label>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <input type="hidden" name="expiry_date_tracking" :value="expiryDateTracking ? '1' : '0'" />
-                                <Checkbox
-                                    id="expiry_date_tracking"
-                                    :checked="expiryDateTracking"
-                                    @update:checked="(val: boolean | 'indeterminate') => (expiryDateTracking = val === true)"
-                                />
-                                <Label for="expiry_date_tracking" class="cursor-pointer font-normal">Expiry Date Tracking</Label>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <input type="hidden" name="serial_number_tracking" :value="serialNumberTracking ? '1' : '0'" />
-                                <Checkbox
-                                    id="serial_number_tracking"
-                                    :checked="serialNumberTracking"
-                                    @update:checked="(val: boolean | 'indeterminate') => (serialNumberTracking = val === true)"
-                                />
-                                <Label for="serial_number_tracking" class="cursor-pointer font-normal">Serial Number Tracking</Label>
-                            </div>
-                            <div>
-                                <Label for="godown_warehouse">Godown / Warehouse</Label>
-                                <Input
-                                    id="godown_warehouse"
-                                    name="godown_warehouse"
-                                    class="mt-1"
-                                    maxlength="100"
-                                    placeholder="Warehouse location"
-                                />
-                            </div>
-                            <div>
-                                <Label for="item_type">Item Type <span class="text-red-500">*</span></Label>
-                                <select
-                                    id="item_type"
-                                    name="item_type"
-                                    required
-                                    class="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 mt-1 flex h-9 w-full rounded-md border px-3 py-1 text-base shadow-xs focus-visible:outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                >
-                                    <option value="">Select Item Type</option>
-                                    <option
-                                        v-for="(label, value) in itemTypeOptions"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ label }}
-                                    </option>
-                                </select>
-                                <InputError :message="errors.item_type" />
-                            </div>
-                            <div>
-                                <Label for="status">Status <span class="text-red-500">*</span></Label>
-                                <select
-                                    id="status"
-                                    name="status"
-                                    required
-                                    class="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 mt-1 flex h-9 w-full rounded-md border px-3 py-1 text-base shadow-xs focus-visible:outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                >
-                                    <option value="">Select Status</option>
-                                    <option
-                                        v-for="(label, value) in statusOptions"
-                                        :key="value"
-                                        :value="value"
-                                    >
-                                        {{ label }}
-                                    </option>
-                                </select>
-                                <InputError :message="errors.status" />
-                            </div>
-                        </div>
+                                <div class="grid gap-4 md:grid-cols-2">
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="hidden"
+                                            name="batch_enabled"
+                                            :value="batchEnabled ? '1' : '0'"
+                                        />
+                                        <Checkbox
+                                            id="batch_enabled"
+                                            :checked="batchEnabled"
+                                            @update:checked="
+                                                (
+                                                    val:
+                                                        | boolean
+                                                        | 'indeterminate',
+                                                ) =>
+                                                    (batchEnabled =
+                                                        val === true)
+                                            "
+                                        />
+                                        <Label
+                                            for="batch_enabled"
+                                            class="cursor-pointer font-normal"
+                                            >Batch Enabled</Label
+                                        >
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="hidden"
+                                            name="expiry_date_tracking"
+                                            :value="
+                                                expiryDateTracking ? '1' : '0'
+                                            "
+                                        />
+                                        <Checkbox
+                                            id="expiry_date_tracking"
+                                            :checked="expiryDateTracking"
+                                            @update:checked="
+                                                (
+                                                    val:
+                                                        | boolean
+                                                        | 'indeterminate',
+                                                ) =>
+                                                    (expiryDateTracking =
+                                                        val === true)
+                                            "
+                                        />
+                                        <Label
+                                            for="expiry_date_tracking"
+                                            class="cursor-pointer font-normal"
+                                            >Expiry Date Tracking</Label
+                                        >
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <input
+                                            type="hidden"
+                                            name="serial_number_tracking"
+                                            :value="
+                                                serialNumberTracking ? '1' : '0'
+                                            "
+                                        />
+                                        <Checkbox
+                                            id="serial_number_tracking"
+                                            :checked="serialNumberTracking"
+                                            @update:checked="
+                                                (
+                                                    val:
+                                                        | boolean
+                                                        | 'indeterminate',
+                                                ) =>
+                                                    (serialNumberTracking =
+                                                        val === true)
+                                            "
+                                        />
+                                        <Label
+                                            for="serial_number_tracking"
+                                            class="cursor-pointer font-normal"
+                                            >Serial Number Tracking</Label
+                                        >
+                                    </div>
+                                    <div>
+                                        <Label for="godown_warehouse"
+                                            >Godown / Warehouse</Label
+                                        >
+                                        <Input
+                                            id="godown_warehouse"
+                                            name="godown_warehouse"
+                                            class="mt-1"
+                                            maxlength="100"
+                                            placeholder="Warehouse location"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="item_type"
+                                            >Item Type
+                                            <span class="text-red-500"
+                                                >*</span
+                                            ></Label
+                                        >
+                                        <select
+                                            id="item_type"
+                                            name="item_type"
+                                            required
+                                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                        >
+                                            <option value="">
+                                                Select Item Type
+                                            </option>
+                                            <option
+                                                v-for="(
+                                                    label, value
+                                                ) in itemTypeOptions"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{ label }}
+                                            </option>
+                                        </select>
+                                        <InputError
+                                            :message="errors.item_type"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label for="status"
+                                            >Status
+                                            <span class="text-red-500"
+                                                >*</span
+                                            ></Label
+                                        >
+                                        <select
+                                            id="status"
+                                            name="status"
+                                            required
+                                            class="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                        >
+                                            <option value="">
+                                                Select Status
+                                            </option>
+                                            <option
+                                                v-for="(
+                                                    label, value
+                                                ) in statusOptions"
+                                                :key="value"
+                                                :value="value"
+                                            >
+                                                {{ label }}
+                                            </option>
+                                        </select>
+                                        <InputError :message="errors.status" />
+                                    </div>
+                                </div>
                             </CardContent>
                         </CollapsibleContent>
                     </Card>
@@ -906,7 +1180,9 @@ onClickOutside(categoryDropdownRef, () => {
                             <CardContent>
                                 <div class="grid gap-4 md:grid-cols-2">
                                     <div>
-                                        <Label for="item_image">Item Image</Label>
+                                        <Label for="item_image"
+                                            >Item Image</Label
+                                        >
                                         <Input
                                             id="item_image"
                                             name="item_image"
@@ -914,26 +1190,70 @@ onClickOutside(categoryDropdownRef, () => {
                                             accept="image/*"
                                             class="mt-1"
                                         />
-                                        <p class="mt-1 text-xs text-muted-foreground">Max 2MB. Formats: JPG, PNG, WebP</p>
-                                        <InputError :message="errors.item_image" />
+                                        <p
+                                            class="mt-1 text-xs text-muted-foreground"
+                                        >
+                                            Max 2MB. Formats: JPG, PNG, WebP
+                                        </p>
+                                        <InputError
+                                            :message="errors.item_image"
+                                        />
                                     </div>
-                                    <div class="flex items-center gap-2 md:content-end">
-                                        <input type="hidden" name="e_invoice_applicable" :value="eInvoiceApplicable ? '1' : '0'" />
+                                    <div
+                                        class="flex items-center gap-2 md:content-end"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="e_invoice_applicable"
+                                            :value="
+                                                eInvoiceApplicable ? '1' : '0'
+                                            "
+                                        />
                                         <Checkbox
                                             id="e_invoice_applicable"
                                             :checked="eInvoiceApplicable"
-                                            @update:checked="(val: boolean | 'indeterminate') => (eInvoiceApplicable = val === true)"
+                                            @update:checked="
+                                                (
+                                                    val:
+                                                        | boolean
+                                                        | 'indeterminate',
+                                                ) =>
+                                                    (eInvoiceApplicable =
+                                                        val === true)
+                                            "
                                         />
-                                        <Label for="e_invoice_applicable" class="cursor-pointer font-normal">E-Invoice Applicable</Label>
+                                        <Label
+                                            for="e_invoice_applicable"
+                                            class="cursor-pointer font-normal"
+                                            >E-Invoice Applicable</Label
+                                        >
                                     </div>
                                     <div class="flex items-center gap-2">
-                                        <input type="hidden" name="e_way_bill_applicable" :value="eWayBillApplicable ? '1' : '0'" />
+                                        <input
+                                            type="hidden"
+                                            name="e_way_bill_applicable"
+                                            :value="
+                                                eWayBillApplicable ? '1' : '0'
+                                            "
+                                        />
                                         <Checkbox
                                             id="e_way_bill_applicable"
                                             :checked="eWayBillApplicable"
-                                            @update:checked="(val: boolean | 'indeterminate') => (eWayBillApplicable = val === true)"
+                                            @update:checked="
+                                                (
+                                                    val:
+                                                        | boolean
+                                                        | 'indeterminate',
+                                                ) =>
+                                                    (eWayBillApplicable =
+                                                        val === true)
+                                            "
                                         />
-                                        <Label for="e_way_bill_applicable" class="cursor-pointer font-normal">E-Way Bill Applicable</Label>
+                                        <Label
+                                            for="e_way_bill_applicable"
+                                            class="cursor-pointer font-normal"
+                                            >E-Way Bill Applicable</Label
+                                        >
                                     </div>
                                 </div>
                             </CardContent>

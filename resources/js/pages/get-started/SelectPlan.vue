@@ -56,10 +56,7 @@ defineProps<{
                         v-if="plan.modules?.length"
                         class="mt-2 list-inside list-disc text-sm text-muted-foreground"
                     >
-                        <li
-                            v-for="mod in plan.modules"
-                            :key="mod.slug"
-                        >
+                        <li v-for="mod in plan.modules" :key="mod.slug">
                             {{ mod.name }}
                         </li>
                     </ul>

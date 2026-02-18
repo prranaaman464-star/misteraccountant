@@ -31,13 +31,25 @@ import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage();
-const organizations = computed(() => (page.props.auth as { organizations?: Array<{ id: number; name: string }> })?.organizations ?? []);
-const currentOrganizationId = computed(() => (page.props.auth as { current_organization_id?: number })?.current_organization_id);
+const organizations = computed(
+    () =>
+        (
+            page.props.auth as {
+                organizations?: Array<{ id: number; name: string }>;
+            }
+        )?.organizations ?? [],
+);
+const currentOrganizationId = computed(
+    () =>
+        (page.props.auth as { current_organization_id?: number })
+            ?.current_organization_id,
+);
 
 function switchOrganization(event: Event) {
     const target = event.target as HTMLSelectElement;
     const id = target?.value;
-    if (id) router.put('/current-organization', { organization_id: Number(id) });
+    if (id)
+        router.put('/current-organization', { organization_id: Number(id) });
 }
 
 const manageNavItems: NavItem[] = [
@@ -63,8 +75,14 @@ const manageNavItems: NavItem[] = [
                 href: '/inventory/stock-value-report',
                 badge: 'New',
             },
-            { title: 'Batch Expiry Report', href: '/inventory/batch-expiry-report' },
-            { title: 'Party Transactions Report', href: '/inventory/party-transactions' },
+            {
+                title: 'Batch Expiry Report',
+                href: '/inventory/batch-expiry-report',
+            },
+            {
+                title: 'Party Transactions Report',
+                href: '/inventory/party-transactions',
+            },
             {
                 title: 'All Transactions Report',
                 href: '/inventory/all-transactions',
@@ -82,14 +100,23 @@ const manageNavItems: NavItem[] = [
         href: '/sales',
         icon: ShoppingCart,
         items: [
-            { title: 'Clients & Prospects', href: '/sales/clients-and-prospects' },
+            {
+                title: 'Clients & Prospects',
+                href: '/sales/clients-and-prospects',
+            },
 
-            { title: 'Quotation & Estimates', href: '/sales/quotation-and-estimates' },
+            {
+                title: 'Quotation & Estimates',
+                href: '/sales/quotation-and-estimates',
+            },
             { title: 'Proforma Invoices', href: '/sales/proforma-invoices' },
             { title: 'Invoices', href: '/sales/invoices' },
             { title: 'Payment Receipts', href: '/sales/payment-receipts' },
             { title: 'Sales Orders (New)', href: '/sales/sales-orders' },
-            { title: 'Delivery Challans (New)', href: '/sales/delivery-challans' },
+            {
+                title: 'Delivery Challans (New)',
+                href: '/sales/delivery-challans',
+            },
             { title: 'Credit Notes (New)', href: '/sales/credit-notes' },
         ],
     },
@@ -99,12 +126,24 @@ const manageNavItems: NavItem[] = [
         icon: ShoppingBag,
         items: [
             { title: 'Vendors Leads', href: '/purchases/vendors-leads' },
-            { title: 'Vendors & Suppliers', href: '/purchases/vendors-and-suppliers' },
-            { title: 'Purchases & Expenses (New)', href: '/purchases/purchases-and-expenses' },
+            {
+                title: 'Vendors & Suppliers',
+                href: '/purchases/vendors-and-suppliers',
+            },
+            {
+                title: 'Purchases & Expenses (New)',
+                href: '/purchases/purchases-and-expenses',
+            },
             { title: 'Purchase Orders', href: '/purchases/purchase-orders' },
-            { title: 'Payout Receipts (New)', href: '/purchases/payout-receipts' },
+            {
+                title: 'Payout Receipts (New)',
+                href: '/purchases/payout-receipts',
+            },
             { title: 'Debit Notes (New)', href: '/purchases/debit-notes' },
-            { title: 'Hire The Best Vendors', href: '/purchases/hire-the-best-vendors' },
+            {
+                title: 'Hire The Best Vendors',
+                href: '/purchases/hire-the-best-vendors',
+            },
         ],
     },
     {

@@ -20,7 +20,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     <Head title="Manage Memberships" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+        <div
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+        >
             <div class="flex flex-col gap-4">
                 <h1 class="text-xl font-semibold">Manage Memberships</h1>
                 <p class="text-muted-foreground">
@@ -36,7 +38,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                         <h2 class="font-medium">Members</h2>
                         <p class="text-lg">
                             {{ memberCount }}
-                            <span v-if="memberLimit !== null">/ {{ memberLimit }}</span>
+                            <span v-if="memberLimit !== null"
+                                >/ {{ memberLimit }}</span
+                            >
                         </p>
                     </div>
                 </div>

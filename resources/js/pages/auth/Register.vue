@@ -84,8 +84,10 @@ withDefaults(
                             type="button"
                             variant="ghost"
                             size="icon"
-                            class="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
-                            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                            class="absolute top-0 right-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                            :aria-label="
+                                showPassword ? 'Hide password' : 'Show password'
+                            "
                             @click="showPassword = !showPassword"
                         >
                             <EyeOff v-if="showPassword" class="size-4" />
@@ -112,8 +114,12 @@ withDefaults(
                             type="button"
                             variant="ghost"
                             size="icon"
-                            class="absolute right-0 top-0 h-9 w-9 text-muted-foreground hover:text-foreground"
-                            :aria-label="showPasswordConfirm ? 'Hide password' : 'Show password'"
+                            class="absolute top-0 right-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                            :aria-label="
+                                showPasswordConfirm
+                                    ? 'Hide password'
+                                    : 'Show password'
+                            "
                             @click="showPasswordConfirm = !showPasswordConfirm"
                         >
                             <EyeOff v-if="showPasswordConfirm" class="size-4" />

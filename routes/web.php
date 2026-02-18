@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\CheckEmailController;
 use App\Http\Controllers\Auth\EmailController;
 use App\Http\Controllers\CurrentOrganizationController;
 use App\Http\Controllers\GetStarted\PlanController as GetStartedPlanController;
+use App\Http\Controllers\InventoryItemsController;
 use App\Http\Controllers\Manage\ManageController;
 use App\Http\Controllers\Onboarding\OrganizationController;
 use App\Http\Controllers\Onboarding\PlanController;
@@ -11,7 +12,6 @@ use App\Http\Controllers\PlanDetailController;
 use App\Http\Controllers\PostAuthRedirectController;
 use App\Http\Controllers\RenewSubscriptionController;
 use App\Http\Middleware\RedirectIfNoOrganization;
-use App\Http\Controllers\InventoryItemsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -60,7 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'verified'])->prefix('inventory')->group(function () {
+Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix('inventory')->group(function () {
     Route::get('items', [InventoryItemsController::class, 'index'])->name('inventory.items');
     Route::get('items/create', [InventoryItemsController::class, 'create'])->name('inventory.items.create');
     Route::post('items', [InventoryItemsController::class, 'store'])->name('inventory.items.store');

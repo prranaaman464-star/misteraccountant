@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Organization;
 use App\Models\User;
 
 test('guests are redirected to the login page when visiting inventory items', function () {
@@ -9,15 +10,19 @@ test('guests are redirected to the login page when visiting inventory items', fu
 
 test('authenticated users can visit the inventory items index', function () {
     $user = User::factory()->create();
-    $this->actingAs($user);
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
 
-    $response = $this->get(route('inventory.items'));
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->get(route('inventory.items'));
     $response->assertOk();
 });
 
 test('authenticated users can create an item', function () {
     $user = User::factory()->create();
-    $this->actingAs($user);
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
 
     $data = [
         'name' => 'Test Item',
@@ -26,7 +31,9 @@ test('authenticated users can create an item', function () {
         'status' => 'active',
     ];
 
-    $response = $this->post(route('inventory.items.store'), $data);
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->post(route('inventory.items.store'), $data);
 
     $response->assertRedirect(route('inventory.items'));
     $this->assertDatabaseHas('items', [
