@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
 import {
-    Briefcase,
     Plus,
-    RefreshCw,
     Settings,
-    Tag,
     LogOut,
 } from 'lucide-vue-next';
 import { cn } from '@/lib/utils';
-import { Button } from './ui/button';
-import { edit } from '@/routes/profile';
 import { logout } from '@/routes';
+import { edit } from '@/routes/profile';
+import { Button } from './ui/button';
 
 const handleLogout = () => {
     router.flushAll();
