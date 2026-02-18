@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head, Link, router } from '@inertiajs/vue3';
+import { Form, Head, Link } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { onClickOutside } from '@vueuse/core';
 import { ChevronDown, Plus, Search } from 'lucide-vue-next';
@@ -22,7 +22,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -212,7 +211,7 @@ onClickOutside(categoryDropdownRef, () => {
                 v-bind="store.form()"
                 class="flex flex-col gap-6"
                 enctype="multipart/form-data"
-                v-slot="{ errors, processing, hasErrors }"
+                v-slot="{ errors, processing }"
             >
                 <AlertError
                     v-if="errors.general"

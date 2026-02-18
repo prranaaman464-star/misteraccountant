@@ -3,18 +3,14 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ArrowDownToLine,
     PackageMinus,
-    ChevronDown,
     ChevronLeft,
     ChevronRight,
-    Filter,
     MoreHorizontal,
     Package,
     PackagePlus,
     Plus,
     Clock,
-    Columns3,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
 import { computed, ref } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
