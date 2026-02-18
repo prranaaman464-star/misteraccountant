@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import {
     Gem,
     LayoutGrid,
@@ -12,9 +13,9 @@ import {
     Plus,
     CreditCard,
 } from 'lucide-vue-next';
+import { computed } from 'vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
-import NavUser from '@/components/NavUser.vue';
 import {
     Sidebar,
     SidebarContent,
@@ -24,12 +25,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { dashboard } from '@/routes';
+import { edit as editProfile } from '@/routes/profile';
 import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
-import { edit as editProfile } from '@/routes/profile';
-import { dashboard } from '@/routes';
-import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
 
 const page = usePage();
 const organizations = computed(() => (page.props.auth as { organizations?: Array<{ id: number; name: string }> })?.organizations ?? []);

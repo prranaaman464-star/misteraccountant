@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Form, Head, Link, usePage } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { Button } from '@/components/ui/button';
-import { dashboard } from '@/routes';
 import { Calendar, RefreshCw, Users } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
 
 const page = usePage();
 const auth = page.props.auth as { can_manage_organization?: boolean };
@@ -31,7 +31,7 @@ interface Organization {
     name: string;
 }
 
-const props = defineProps<{
+defineProps<{
     organization: Organization | null;
     subscription: Subscription | null;
     plan: Plan | null;

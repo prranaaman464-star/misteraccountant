@@ -1,9 +1,7 @@
 <script setup lang="ts">
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { Form, Head, useForm, usePage } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
 import InputError from '@/components/InputError.vue';
-import type { BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -16,6 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import AppLayout from '@/layouts/AppLayout.vue';
+import type { BreadcrumbItem } from '@/types';
 
 interface Member {
     id: number;
@@ -26,7 +26,7 @@ interface Member {
     joined_at: string;
 }
 
-const props = defineProps<{
+defineProps<{
     organization: { id: number; name: string };
     members: Member[];
     memberLimit: number | null;
