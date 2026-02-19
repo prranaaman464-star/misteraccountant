@@ -29,6 +29,7 @@ import { dashboard } from '@/routes';
 import { edit as editProfile } from '@/routes/profile';
 import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
+import inventory from '@/routes/inventory';
 
 const page = usePage();
 const organizations = computed(
@@ -66,7 +67,7 @@ const manageNavItems: NavItem[] = [
             { title: 'All Items', href: '/inventory/items' },
             {
                 title: 'Warehouses',
-                href: '/inventory/warehouses',
+                href: inventory.warehouses(),
                 badgeIcon: Gem,
             },
             { title: 'Product-wise P&L', href: '/inventory/product-wise-pl' },

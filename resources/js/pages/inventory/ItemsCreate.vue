@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import { onClickOutside } from '@vueuse/core';
 import { ChevronDown, Plus, Search } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { store } from '@/actions/App/Http/Controllers/InventoryItemsController';
+import { store } from '@/actions/App/Http/Controllers/Inventory/ItemsController';
 import AlertError from '@/components/AlertError.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
