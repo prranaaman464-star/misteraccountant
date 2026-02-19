@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Inventory;
 
-use App\Http\Requests\Inventory\StoreInventoryItemRequest;
-use App\Models\Category;
+use App\Http\Controllers\Controller;
 use App\Models\Item;
+use App\Models\Category;
+use App\Http\Requests\Inventory\StoreInventoryItemRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class InventoryItemsController extends Controller
+class ItemsController extends Controller
 {
     public function index(Request $request): \Inertia\Response
     {
