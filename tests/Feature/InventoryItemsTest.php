@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Item;
 use App\Models\Organization;
 use App\Models\User;
 
@@ -59,4 +60,106 @@ test('guests cannot create an item', function () {
 
     $response->assertRedirect(route('login'));
     $this->assertDatabaseCount('items', 0);
+});
+
+test('authenticated users can edit an item', function () {
+    $user = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+
+    $item = Item::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->put(route('inventory.items.update', $item), [
+            'name' => 'Updated Item Name',
+            'item_type' => 'goods',
+            'status' => 'active',
+        ]);
+
+    $response->assertRedirect(route('inventory.items.show', $item));
+    $this->assertDatabaseHas('items', [
+        'id' => $item->id,
+        'name' => 'Updated Item Name',
+    ]);
+});
+
+test('authenticated users can stock in an item', function () {
+    $user = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+
+    $item = Item::factory()->create();
+    $item->inventory?->update(['stock_quantity' => 10]);
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->post(route('inventory.items.stock-in', $item), [
+            'quantity' => 5,
+            'reference' => 'PO-001',
+        ]);
+
+    $response->assertRedirect();
+    $item->refresh();
+    expect((float) $item->inventory->stock_quantity)->toBe(15.0);
+});
+
+test('authenticated users can stock out an item', function () {
+    $user = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+
+    $item = Item::factory()->create();
+    $item->inventory?->update(['stock_quantity' => 10]);
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->post(route('inventory.items.stock-out', $item), [
+            'quantity' => 3,
+            'reference' => 'SO-001',
+        ]);
+
+    $response->assertRedirect();
+    $item->refresh();
+    expect((float) $item->inventory->stock_quantity)->toBe(7.0);
+});
+
+test('stock out validation fails when quantity exceeds current stock', function () {
+    $user = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+
+    $item = Item::factory()->create();
+    $item->inventory?->update(['stock_quantity' => 5]);
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->post(route('inventory.items.stock-out', $item), [
+            'quantity' => 10,
+            'reference' => '',
+        ]);
+
+    $response->assertSessionHasErrors('quantity');
+    $item->refresh();
+    expect((float) $item->inventory->stock_quantity)->toBe(5.0);
+});
+
+test('authenticated users can view an item with full details', function () {
+    $user = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+
+    $item = Item::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->get(route('inventory.items.show', $item));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('inventory/ItemsShow')
+        ->has('item')
+        ->where('item.id', $item->id)
+        ->where('item.name', $item->name)
+    );
 });
