@@ -55,11 +55,11 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
-        { title: 'Home', href: dashboard().url },
-        { title: 'Items', href: inventory.items.url() },
-        { title: props.item.name, href: show(props.item.id).url },
-        { title: 'Edit', href: edit(props.item.id).url },
-    ]);
+    { title: 'Home', href: dashboard().url },
+    { title: 'Items', href: inventory.items.url() },
+    { title: props.item.name, href: show(props.item.id).url },
+    { title: 'Edit', href: edit(props.item.id).url },
+]);
 
 const gstApplicable = ref(Boolean(props.item.taxDetail?.gst_applicable));
 const priceInclusiveOfTax = ref(
@@ -78,6 +78,7 @@ const eInvoiceApplicable = ref(
 const eWayBillApplicable = ref(
     Boolean(props.item.compliance?.e_way_bill_applicable),
 );
+const description = ref(props.item.description ?? '');
 const basicOpen = ref(true);
 const taxOpen = ref(false);
 const pricingOpen = ref(false);
@@ -132,10 +133,7 @@ const initialCategories = ((): { id: string; name: string }[] => {
         id: String(c.id),
         name: c.name,
     }));
-    if (
-        itemCategory &&
-        !list.some((c) => c.id === String(itemCategory.id))
-    ) {
+    if (itemCategory && !list.some((c) => c.id === String(itemCategory.id))) {
         list.push({
             id: String(itemCategory.id),
             name: itemCategory.name,
@@ -145,9 +143,7 @@ const initialCategories = ((): { id: string; name: string }[] => {
     return list;
 })();
 const categories = ref(initialCategories);
-const selectedCategory = ref(
-    itemCategory ? String(itemCategory.id) : '',
-);
+const selectedCategory = ref(itemCategory ? String(itemCategory.id) : '');
 const categoryDropdownOpen = ref(false);
 const categorySearchQuery = ref('');
 const newCategoryNameForSubmit = ref('');
@@ -251,9 +247,7 @@ onClickOutside(categoryDropdownRef, () => {
             <div
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Edit Item
-                </h1>
+                <h1 class="text-2xl font-semibold tracking-tight">Edit Item</h1>
                 <Link :href="show(props.item.id).url">
                     <Button variant="outline" size="default">Cancel</Button>
                 </Link>
@@ -313,7 +307,9 @@ onClickOutside(categoryDropdownRef, () => {
                                             class="mt-1"
                                             maxlength="100"
                                             placeholder="e.g. SKU-001"
-                                            :default-value="props.item.item_code ?? ''"
+                                            :default-value="
+                                                props.item.item_code ?? ''
+                                            "
                                         />
                                         <InputError
                                             :message="errors.item_code"
@@ -531,7 +527,9 @@ onClickOutside(categoryDropdownRef, () => {
                                             class="mt-1"
                                             maxlength="100"
                                             placeholder="Sub-category"
-                                            :default-value="props.item.sub_category ?? ''"
+                                            :default-value="
+                                                props.item.sub_category ?? ''
+                                            "
                                         />
                                     </div>
                                     <div>
@@ -542,7 +540,9 @@ onClickOutside(categoryDropdownRef, () => {
                                             class="mt-1"
                                             maxlength="100"
                                             placeholder="Brand"
-                                            :default-value="props.item.brand ?? ''"
+                                            :default-value="
+                                                props.item.brand ?? ''
+                                            "
                                         />
                                     </div>
                                     <div>
@@ -553,7 +553,9 @@ onClickOutside(categoryDropdownRef, () => {
                                             class="mt-1"
                                             maxlength="100"
                                             placeholder="Model number"
-                                            :default-value="props.item.model_no ?? ''"
+                                            :default-value="
+                                                props.item.model_no ?? ''
+                                            "
                                         />
                                     </div>
                                     <div class="md:col-span-2">
@@ -562,11 +564,12 @@ onClickOutside(categoryDropdownRef, () => {
                                         >
                                         <textarea
                                             id="description"
+                                            v-model="description"
                                             name="description"
                                             rows="3"
                                             class="mt-1 flex h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                                             placeholder="Item description"
-                                        >{{ props.item.description ?? '' }}</textarea>
+                                        />
                                         <InputError
                                             :message="errors.description"
                                         />
@@ -637,7 +640,9 @@ onClickOutside(categoryDropdownRef, () => {
                                                 maxlength="50"
                                                 placeholder="e.g. 9983"
                                                 :default-value="
-                                                    (props.item.taxDetail?.hsn_sac_code as string) ?? ''
+                                                    (props.item.taxDetail
+                                                        ?.hsn_sac_code as string) ??
+                                                    ''
                                                 "
                                             />
                                             <InputError
@@ -1278,8 +1283,8 @@ onClickOutside(categoryDropdownRef, () => {
                                             placeholder="Warehouse location"
                                             :default-value="
                                                 (props.item.inventory
-                                                    ?.godown_warehouse as
-                                                    string) ?? ''
+                                                    ?.godown_warehouse as string) ??
+                                                ''
                                             "
                                         />
                                     </div>

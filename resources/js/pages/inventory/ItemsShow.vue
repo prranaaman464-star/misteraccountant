@@ -148,7 +148,10 @@ const statusLabels: Record<string, string> = {
                             <span
                                 class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium"
                             >
-                                {{ itemTypeLabels[item.item_type] ?? item.item_type }}
+                                {{
+                                    itemTypeLabels[item.item_type] ??
+                                    item.item_type
+                                }}
                             </span>
                             <span
                                 class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
@@ -296,9 +299,7 @@ const statusLabels: Record<string, string> = {
                                             : 'No'
                                     }}</span>
                                 </div>
-                                <template
-                                    v-if="item.taxDetail?.gst_applicable"
-                                >
+                                <template v-if="item.taxDetail?.gst_applicable">
                                     <div>
                                         <p
                                             class="text-xs font-medium text-muted-foreground"
@@ -666,8 +667,8 @@ const statusLabels: Record<string, string> = {
                                     </p>
                                     <p class="mt-1">
                                         {{
-                                            item.inventory
-                                                ?.godown_warehouse ?? '–'
+                                            item.inventory?.godown_warehouse ??
+                                            '–'
                                         }}
                                     </p>
                                 </div>
@@ -712,8 +713,7 @@ const statusLabels: Record<string, string> = {
                                     <span
                                         class="inline-flex size-2 rounded-full"
                                         :class="
-                                            item.inventory
-                                                ?.expiry_date_tracking
+                                            item.inventory?.expiry_date_tracking
                                                 ? 'bg-emerald-500'
                                                 : 'bg-muted'
                                         "

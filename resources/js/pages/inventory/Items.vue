@@ -18,6 +18,7 @@ import {
     X,
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,7 +39,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import inventory from '@/routes/inventory';
@@ -145,16 +145,9 @@ function saveColumnVisibility(cols: Record<ColumnKey, boolean>): void {
     localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(cols));
 }
 
-const columnVisibility = ref<Record<ColumnKey, boolean>>(loadColumnVisibility());
-
-function toggleColumn(key: ColumnKey): void {
-    if (key === 'product') return;
-    columnVisibility.value = {
-        ...columnVisibility.value,
-        [key]: !columnVisibility.value[key],
-    };
-    saveColumnVisibility(columnVisibility.value);
-}
+const columnVisibility = ref<Record<ColumnKey, boolean>>(
+    loadColumnVisibility(),
+);
 
 function setColumnVisible(key: ColumnKey, visible: boolean): void {
     if (key === 'product') return;
@@ -329,7 +322,9 @@ async function submitStockMovement(): Promise<void> {
             ? stockIn(item.id).url
             : stockOut(item.id).url;
     const csrfToken =
-        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? '';
 
     try {
         const formData = new FormData();
@@ -418,7 +413,9 @@ const visibleColumnCount = computed(() => {
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
             >
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-foreground">
+                    <h1
+                        class="text-2xl font-bold tracking-tight text-foreground"
+                    >
                         Items
                     </h1>
                     <p class="mt-1 text-sm text-muted-foreground">
@@ -443,7 +440,9 @@ const visibleColumnCount = computed(() => {
             <div
                 class="rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border"
             >
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
+                <div
+                    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3"
+                >
                     <div class="relative min-w-0 flex-1">
                         <Search
                             class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -451,7 +450,7 @@ const visibleColumnCount = computed(() => {
                         <Input
                             v-model="searchQuery"
                             placeholder="Search by name, code, brand, or description..."
-                            class="h-10 rounded-lg border-muted-foreground/20 bg-muted/30 pl-9 pr-4 transition-colors placeholder:text-muted-foreground focus-visible:bg-background focus-visible:ring-2"
+                            class="h-10 rounded-lg border-muted-foreground/20 bg-muted/30 pr-4 pl-9 transition-colors placeholder:text-muted-foreground focus-visible:bg-background focus-visible:ring-2"
                             @keyup.enter="handleSearch"
                         />
                         <Button
@@ -604,7 +603,9 @@ const visibleColumnCount = computed(() => {
                             >
                                 Status
                             </th>
-                            <th class="h-12 px-4 text-left font-medium text-muted-foreground">
+                            <th
+                                class="h-12 px-4 text-left font-medium text-muted-foreground"
+                            >
                                 Actions
                             </th>
                             <th class="h-12 w-12 px-4"></th>
@@ -619,7 +620,9 @@ const visibleColumnCount = computed(() => {
                                 :colspan="visibleColumnCount"
                                 class="p-12 text-center text-muted-foreground"
                             >
-                                <Package class="mx-auto mb-3 size-12 opacity-40" />
+                                <Package
+                                    class="mx-auto mb-3 size-12 opacity-40"
+                                />
                                 <p class="font-medium">No items found</p>
                                 <p class="mt-1 text-sm">
                                     <Link
@@ -646,7 +649,9 @@ const visibleColumnCount = computed(() => {
                             </td>
                             <td class="p-4 align-middle">
                                 <div class="flex items-center gap-3">
-                                    <Avatar class="size-9 shrink-0 ring-1 ring-muted/50">
+                                    <Avatar
+                                        class="size-9 shrink-0 ring-1 ring-muted/50"
+                                    >
                                         <AvatarImage
                                             v-if="getImageUrl(item.item_image)"
                                             :src="getImageUrl(item.item_image)!"
@@ -699,7 +704,7 @@ const visibleColumnCount = computed(() => {
                             </td>
                             <td
                                 v-if="isColumnVisible('sale_price')"
-                                class="p-4 align-middle tabular-nums font-medium"
+                                class="p-4 align-middle font-medium tabular-nums"
                             >
                                 {{ formatPrice(item.pricing?.sale_price) }}
                             </td>
@@ -817,9 +822,7 @@ const visibleColumnCount = computed(() => {
                     <div class="flex items-center gap-2">
                         <span class="text-sm text-muted-foreground"
                             >Showing
-                            {{
-                                (items.current_page - 1) * items.per_page + 1
-                            }}
+                            {{ (items.current_page - 1) * items.per_page + 1 }}
                             to
                             {{
                                 Math.min(
@@ -907,7 +910,11 @@ const visibleColumnCount = computed(() => {
                 >
                     <DialogHeader>
                         <DialogTitle>
-                            {{ stockModalType === 'in' ? 'Stock In' : 'Stock Out' }}
+                            {{
+                                stockModalType === 'in'
+                                    ? 'Stock In'
+                                    : 'Stock Out'
+                            }}
                         </DialogTitle>
                         <DialogDescription>
                             {{
@@ -916,8 +923,11 @@ const visibleColumnCount = computed(() => {
                                     : ''
                             }}
                             <span
-                                v-if="stockModalItem?.inventory?.stock_quantity != null"
-                                class="block mt-1 text-muted-foreground"
+                                v-if="
+                                    stockModalItem?.inventory?.stock_quantity !=
+                                    null
+                                "
+                                class="mt-1 block text-muted-foreground"
                             >
                                 Current stock:
                                 {{ stockModalItem.inventory.stock_quantity }}
@@ -945,9 +955,7 @@ const visibleColumnCount = computed(() => {
                                 placeholder="Enter quantity"
                                 required
                             />
-                            <InputError
-                                :message="stockErrors.quantity"
-                            />
+                            <InputError :message="stockErrors.quantity" />
                         </div>
                         <div class="space-y-2">
                             <Label for="stock-reference"
@@ -960,9 +968,7 @@ const visibleColumnCount = computed(() => {
                                 maxlength="255"
                                 placeholder="e.g. Invoice #123"
                             />
-                            <InputError
-                                :message="stockErrors.reference"
-                            />
+                            <InputError :message="stockErrors.reference" />
                         </div>
                         <DialogFooter>
                             <Button
@@ -972,10 +978,7 @@ const visibleColumnCount = computed(() => {
                             >
                                 Cancel
                             </Button>
-                            <Button
-                                type="submit"
-                                :disabled="stockSubmitting"
-                            >
+                            <Button type="submit" :disabled="stockSubmitting">
                                 {{
                                     stockSubmitting
                                         ? 'Processing...'
@@ -988,7 +991,6 @@ const visibleColumnCount = computed(() => {
                     </form>
                 </DialogContent>
             </Dialog>
-
         </div>
     </AppLayout>
 </template>
