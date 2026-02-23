@@ -4,9 +4,13 @@ use App\Http\Controllers\Auth\CheckEmailController;
 use App\Http\Controllers\Auth\EmailController;
 use App\Http\Controllers\CurrentOrganizationController;
 use App\Http\Controllers\GetStarted\PlanController as GetStartedPlanController;
+use App\Http\Controllers\Inventory\AllTransactionsController;
+use App\Http\Controllers\Inventory\BatchExpiryReportController;
 use App\Http\Controllers\Inventory\ItemsController;
-use App\Http\Controllers\Inventory\WarehousesController;
+use App\Http\Controllers\Inventory\PartyTransactionsController;
 use App\Http\Controllers\Inventory\ProductWisePlController;
+use App\Http\Controllers\Inventory\StockValueReportController;
+use App\Http\Controllers\Inventory\WarehousesController;
 use App\Http\Controllers\Manage\ManageController;
 use App\Http\Controllers\Onboarding\OrganizationController;
 use App\Http\Controllers\Onboarding\PlanController;
@@ -17,10 +21,6 @@ use App\Http\Middleware\RedirectIfNoOrganization;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
-use App\Http\Controllers\Inventory\StockValueReportController;
-use App\Http\Controllers\Inventory\BatchExpiryReportController;
-use App\Http\Controllers\Inventory\PartyTransactionsController;
-use App\Http\Controllers\Inventory\AllTransactionsController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -75,23 +75,25 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
     Route::get('items/{item}/edit', [ItemsController::class, 'edit'])->name('inventory.items.edit');
     Route::put('items/{item}', [ItemsController::class, 'update'])->name('inventory.items.update');
     Route::delete('items/{item}', [ItemsController::class, 'destroy'])->name('inventory.items.destroy');
+    Route::post('items/{item}/stock-in', [ItemsController::class, 'stockIn'])->name('inventory.items.stock-in');
+    Route::post('items/{item}/stock-out', [ItemsController::class, 'stockOut'])->name('inventory.items.stock-out');
 
-    //Warehouses
+    // Warehouses
     Route::get('warehouses', [WarehousesController::class, 'index'])->name('inventory.warehouses');
 
-    //product-wise-pl
+    // product-wise-pl
     Route::get('product-wise-pl', [ProductWisePlController::class, 'index'])->name('inventory.product-wise-pl');
 
-    //stock-value-report
+    // stock-value-report
     Route::get('stock-value-report', [StockValueReportController::class, 'index'])->name('inventory.stock-value-report');
 
-    //batch-expiry-report
+    // batch-expiry-report
     Route::get('batch-expiry-report', [BatchExpiryReportController::class, 'index'])->name('inventory.batch-expiry-report');
 
-    //party-transactions
+    // party-transactions
     Route::get('party-transactions', [PartyTransactionsController::class, 'index'])->name('inventory.party-transactions');
 
-    //all-transactions
+    // all-transactions
     Route::get('all-transactions', [AllTransactionsController::class, 'index'])->name('inventory.all-transactions');
 
 });

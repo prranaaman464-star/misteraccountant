@@ -26,10 +26,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import inventory from '@/routes/inventory';
 import { edit as editProfile } from '@/routes/profile';
 import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
-import inventory from '@/routes/inventory';
 
 const page = usePage();
 const organizations = computed(

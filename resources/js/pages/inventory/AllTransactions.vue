@@ -5,9 +5,15 @@ import AppLayout from '@/layouts/AppLayout.vue';
 
 <template>
     <Head title="All Transactions" />
-    <AppLayout :breadcrumbs="[{ title: 'All Transactions', href: '/inventory/all-transactions' }]">
+    <AppLayout
+        :breadcrumbs="[
+            { title: 'All Transactions', href: '/inventory/all-transactions' },
+        ]"
+    >
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
-            <h1 class="text-2xl font-semibold tracking-tight">All Transactions coming soon</h1>
+            <h1 class="text-2xl font-semibold tracking-tight">
+                All Transactions coming soon
+            </h1>
         </div>
     </AppLayout>
 </template>
