@@ -76,13 +76,6 @@ const primaryUnitOptions: Record<string, string> = {
     'Sq Meter': 'Sq Meter',
 };
 
-const itemTypeOptions: Record<string, string> = {
-    goods: 'Goods',
-    service: 'Service',
-    raw_material: 'Raw Material',
-    finished_goods: 'Finished Goods',
-};
-
 /** For Create form: only Product vs Service (saved as goods / service in DB). */
 const itemTypeCreateOptions: Record<string, string> = {
     goods: 'Product',
