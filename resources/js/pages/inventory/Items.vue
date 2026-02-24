@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
@@ -260,18 +261,58 @@ function getImageUrl(imagePath: string | null): string | null {
     return `/storage/${imagePath}`;
 }
 
+const primaryUnitOptions: Record<string, string> = {
+    Nos: 'Nos',
+    'Piece (Pcs)': 'Piece (Pcs)',
+    Box: 'Box',
+    Pack: 'Pack',
+    Dozen: 'Dozen',
+    Pair: 'Pair',
+    Set: 'Set',
+    Roll: 'Roll',
+    Bundle: 'Bundle',
+    Carton: 'Carton',
+    Kg: 'Kg',
+    Gram: 'Gram',
+    Quintal: 'Quintal',
+    Ton: 'Ton',
+    Litre: 'Litre',
+    ML: 'ML',
+    Feet: 'Feet',
+    Meter: 'Meter',
+    Inch: 'Inch',
+    Yard: 'Yard',
+    'Sq Ft': 'Sq Ft',
+    'Sq Meter': 'Sq Meter',
+};
+
 const stockModalOpen = ref(false);
 const stockModalItem = ref<Item | null>(null);
 const stockModalType = ref<'in' | 'out'>('in');
 const stockQuantity = ref('');
+const stockUnit = ref('');
 const stockReference = ref('');
 const stockErrors = ref<Record<string, string>>({});
 const stockSubmitting = ref(false);
+
+/** Unit options for stock modal: standard list + current item's saved primary_unit if not in list */
+const stockUnitOptions = computed(() => {
+    const opts = { ...primaryUnitOptions };
+    const saved = stockModalItem.value?.inventory?.primary_unit;
+    if (saved && typeof saved === 'string' && !(saved in opts)) {
+        opts[saved] = saved;
+    }
+    return opts;
+});
 
 function openStockModal(item: Item, type: 'in' | 'out'): void {
     stockModalItem.value = item;
     stockModalType.value = type;
     stockQuantity.value = '';
+    const savedUnit =
+        (item.inventory?.primary_unit as string)?.trim() || '';
+    stockUnit.value =
+        savedUnit || Object.keys(primaryUnitOptions)[0] || '';
     stockReference.value = '';
     stockErrors.value = {};
     stockModalOpen.value = true;
@@ -281,6 +322,7 @@ function closeStockModal(): void {
     stockModalOpen.value = false;
     stockModalItem.value = null;
     stockQuantity.value = '';
+    stockUnit.value = '';
     stockReference.value = '';
     stockErrors.value = {};
 }
@@ -289,6 +331,7 @@ watch(stockModalOpen, (open) => {
     if (!open) {
         stockModalItem.value = null;
         stockQuantity.value = '';
+        stockUnit.value = '';
         stockReference.value = '';
         stockErrors.value = {};
     }
@@ -329,7 +372,8 @@ async function submitStockMovement(): Promise<void> {
     try {
         const formData = new FormData();
         formData.append('quantity', String(quantity));
-        formData.append('reference', stockReference.value);
+        formData.append('unit', stockUnit.value || '');
+        formData.append('reference', stockReference.value.trim());
         formData.append('_token', csrfToken);
 
         const response = await fetch(url, {
@@ -752,7 +796,9 @@ const visibleColumnCount = computed(() => {
                                 </span>
                             </td>
                             <td class="p-4 align-middle">
-                                <div class="flex flex-wrap items-center gap-1">
+                                <div
+                                    class="flex flex-nowrap items-center gap-1"
+                                >
                                     <Link :href="show(item.id).url">
                                         <Button
                                             variant="default"
@@ -902,75 +948,183 @@ const visibleColumnCount = computed(() => {
                 </div>
             </div>
 
-            <!-- Stock In/Out Modal -->
+            <!-- Stock In/Out Modal (movements saved in DB) -->
             <Dialog v-model:open="stockModalOpen">
                 <DialogContent
-                    class="sm:max-w-md"
+                    class="gap-0 overflow-hidden p-0 sm:max-w-lg"
                     @pointer-down-outside="closeStockModal"
                 >
-                    <DialogHeader>
-                        <DialogTitle>
-                            {{
-                                stockModalType === 'in'
-                                    ? 'Stock In'
-                                    : 'Stock Out'
-                            }}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {{
-                                stockModalItem
-                                    ? `${stockModalItem.name}${stockModalItem.inventory?.primary_unit ? ` (${stockModalItem.inventory.primary_unit})` : ''}`
-                                    : ''
-                            }}
-                            <span
-                                v-if="
-                                    stockModalItem?.inventory?.stock_quantity !=
-                                    null
-                                "
-                                class="mt-1 block text-muted-foreground"
-                            >
-                                Current stock:
-                                {{ stockModalItem.inventory.stock_quantity }}
-                            </span>
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form
-                        class="space-y-4"
-                        @submit.prevent="submitStockMovement"
+                    <!-- Header with icon and type -->
+                    <div
+                        class="flex items-center gap-3 border-b border-sidebar-border/70 px-6 py-4 dark:border-sidebar-border"
+                        :class="
+                            stockModalType === 'in'
+                                ? 'bg-emerald-500/10 dark:bg-emerald-500/15'
+                                : 'bg-red-500/10 dark:bg-red-500/15'
+                        "
                     >
                         <div
-                            v-if="stockErrors.general"
-                            class="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                            class="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                            :class="
+                                stockModalType === 'in'
+                                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                            "
                         >
-                            {{ stockErrors.general }}
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="stock-quantity">Quantity</Label>
-                            <Input
-                                id="stock-quantity"
-                                v-model="stockQuantity"
-                                type="number"
-                                min="0"
-                                step="0.0001"
-                                placeholder="Enter quantity"
-                                required
+                            <PackagePlus
+                                v-if="stockModalType === 'in'"
+                                class="size-6"
                             />
-                            <InputError :message="stockErrors.quantity" />
+                            <PackageMinus
+                                v-else
+                                class="size-6"
+                            />
                         </div>
-                        <div class="space-y-2">
-                            <Label for="stock-reference"
-                                >Reference (optional)</Label
+                        <div class="min-w-0 flex-1">
+                            <DialogTitle class="text-lg font-semibold">
+                                {{
+                                    stockModalType === 'in'
+                                        ? 'Add Stock In'
+                                        : 'Stock Out'
+                                }}
+                            </DialogTitle>
+                            <p
+                                class="mt-0.5 text-sm text-muted-foreground"
                             >
-                            <Input
-                                id="stock-reference"
-                                v-model="stockReference"
-                                type="text"
-                                maxlength="255"
-                                placeholder="e.g. Invoice #123"
-                            />
-                            <InputError :message="stockErrors.reference" />
+                                This will be saved in stock history.
+                            </p>
                         </div>
-                        <DialogFooter>
+                    </div>
+
+                    <form
+                        class="flex flex-col gap-0"
+                        @submit.prevent="submitStockMovement"
+                    >
+                        <div class="flex flex-col gap-4 px-6 py-5">
+                            <div
+                                v-if="stockErrors.general"
+                                class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+                            >
+                                {{ stockErrors.general }}
+                            </div>
+
+                            <!-- Item summary card -->
+                            <div
+                                v-if="stockModalItem"
+                                class="rounded-xl border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border"
+                            >
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="font-medium text-foreground">
+                                            {{ stockModalItem.name }}
+                                        </p>
+                                        <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground">
+                                            <span>
+                                                Code:
+                                                {{
+                                                    stockModalItem.item_code ??
+                                                    '-'
+                                                }}
+                                            </span>
+                                            <span>
+                                                Unit:
+                                                {{
+                                                    stockModalItem.inventory
+                                                        ?.primary_unit ?? '-'
+                                                }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <span
+                                        class="shrink-0 rounded-full bg-primary/15 px-2.5 py-1 text-sm font-medium text-primary"
+                                    >
+                                        Stock:
+                                        {{
+                                            stockModalItem.inventory
+                                                ?.stock_quantity ?? 0
+                                        }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Units -->
+                            <div class="space-y-2">
+                                <Label
+                                    for="stock-unit"
+                                    class="flex items-center gap-1 font-medium"
+                                >
+                                    Units
+                                    <span class="text-destructive">*</span>
+                                </Label>
+                                <select
+                                    id="stock-unit"
+                                    v-model="stockUnit"
+                                    required
+                                    class="flex h-11 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                >
+                                    <option
+                                        v-for="(label, value) in stockUnitOptions"
+                                        :key="value"
+                                        :value="value"
+                                    >
+                                        {{ label }}
+                                    </option>
+                                </select>
+                                <InputError
+                                    :message="stockErrors.unit"
+                                />
+                            </div>
+
+                            <!-- Quantity -->
+                            <div class="space-y-2">
+                                <Label
+                                    for="stock-quantity"
+                                    class="flex items-center gap-1 font-medium"
+                                >
+                                    Quantity
+                                    <span class="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id="stock-quantity"
+                                    v-model="stockQuantity"
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    placeholder="e.g. 15"
+                                    class="h-11"
+                                    required
+                                />
+                                <InputError
+                                    :message="stockErrors.quantity"
+                                />
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="space-y-2">
+                                <Label
+                                    for="stock-notes"
+                                    class="font-medium text-muted-foreground"
+                                >
+                                    Notes (optional)
+                                </Label>
+                                <textarea
+                                    id="stock-notes"
+                                    v-model="stockReference"
+                                    rows="2"
+                                    class="flex min-h-16 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                                    placeholder="Reference or remark"
+                                    maxlength="255"
+                                />
+                                <InputError
+                                    :message="stockErrors.reference"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div
+                            class="flex flex-row justify-end gap-2 border-t border-sidebar-border/70 bg-muted/30 px-6 py-4 dark:border-sidebar-border"
+                        >
                             <Button
                                 type="button"
                                 variant="outline"
@@ -978,16 +1132,28 @@ const visibleColumnCount = computed(() => {
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" :disabled="stockSubmitting">
+                            <Button
+                                type="submit"
+                                :disabled="stockSubmitting"
+                                :class="
+                                    stockModalType === 'in'
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700'
+                                        : 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700'
+                                "
+                            >
+                                <Spinner
+                                    v-if="stockSubmitting"
+                                    class="mr-2 size-4"
+                                />
                                 {{
                                     stockSubmitting
-                                        ? 'Processing...'
+                                        ? 'Saving...'
                                         : stockModalType === 'in'
-                                          ? 'Add Stock'
-                                          : 'Remove Stock'
+                                          ? 'Add Quantity'
+                                          : 'Remove Quantity'
                                 }}
                             </Button>
-                        </DialogFooter>
+                        </div>
                     </form>
                 </DialogContent>
             </Dialog>

@@ -96,12 +96,18 @@ test('authenticated users can stock in an item', function () {
         ->withSession(['current_organization_id' => $org->id])
         ->post(route('inventory.items.stock-in', $item), [
             'quantity' => 5,
+            'unit' => 'Nos',
             'reference' => 'PO-001',
         ]);
 
     $response->assertRedirect();
     $item->refresh();
     expect((float) $item->inventory->stock_quantity)->toBe(15.0);
+    $item->load('stockMovements');
+    expect($item->stockMovements)->toHaveCount(1);
+    expect($item->stockMovements->first()->type)->toBe('in');
+    expect((float) $item->stockMovements->first()->quantity)->toBe(5.0);
+    expect($item->stockMovements->first()->unit)->toBe('Nos');
 });
 
 test('authenticated users can stock out an item', function () {
@@ -116,12 +122,17 @@ test('authenticated users can stock out an item', function () {
         ->withSession(['current_organization_id' => $org->id])
         ->post(route('inventory.items.stock-out', $item), [
             'quantity' => 3,
+            'unit' => 'Box',
             'reference' => 'SO-001',
         ]);
 
     $response->assertRedirect();
     $item->refresh();
     expect((float) $item->inventory->stock_quantity)->toBe(7.0);
+    $item->load('stockMovements');
+    expect($item->stockMovements)->toHaveCount(1);
+    expect($item->stockMovements->first()->type)->toBe('out');
+    expect($item->stockMovements->first()->unit)->toBe('Box');
 });
 
 test('stock out validation fails when quantity exceeds current stock', function () {
@@ -136,6 +147,7 @@ test('stock out validation fails when quantity exceeds current stock', function 
         ->withSession(['current_organization_id' => $org->id])
         ->post(route('inventory.items.stock-out', $item), [
             'quantity' => 10,
+            'unit' => 'Nos',
             'reference' => '',
         ]);
 

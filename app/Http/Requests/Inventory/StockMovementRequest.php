@@ -18,6 +18,7 @@ class StockMovementRequest extends FormRequest
     {
         $rules = [
             'quantity' => ['required', 'numeric', 'min:0.0001'],
+            'unit' => ['required', 'string', 'max:50'],
             'reference' => ['nullable', 'string', 'max:255'],
         ];
 
@@ -39,6 +40,7 @@ class StockMovementRequest extends FormRequest
             'quantity.required' => 'Quantity is required.',
             'quantity.min' => 'Quantity must be greater than zero.',
             'quantity.max' => 'Stock out quantity cannot exceed current stock.',
+            'unit.required' => 'Please select a unit.',
         ];
     }
 }

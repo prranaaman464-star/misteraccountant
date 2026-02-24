@@ -8,6 +8,7 @@ use App\Http\Requests\Inventory\StoreInventoryItemRequest;
 use App\Http\Requests\Inventory\UpdateInventoryItemRequest;
 use App\Models\Category;
 use App\Models\Item;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -269,7 +270,18 @@ class ItemsController extends Controller
         }
 
         $currentStock = (float) ($inventory->stock_quantity ?? 0);
-        $inventory->update(['stock_quantity' => $currentStock + $quantity]);
+        $newStock = $currentStock + $quantity;
+
+        StockMovement::query()->create([
+            'item_id' => $item->id,
+            'type' => 'in',
+            'quantity' => $quantity,
+            'unit' => $validated['unit'],
+            'reference' => isset($validated['reference']) ? trim((string) $validated['reference']) : null,
+            'user_id' => auth()->id(),
+        ]);
+
+        $inventory->update(['stock_quantity' => $newStock]);
 
         return back()->with('success', 'Stock updated successfully.');
     }
@@ -285,7 +297,18 @@ class ItemsController extends Controller
         }
 
         $currentStock = (float) ($inventory->stock_quantity ?? 0);
-        $inventory->update(['stock_quantity' => $currentStock - $quantity]);
+        $newStock = $currentStock - $quantity;
+
+        StockMovement::query()->create([
+            'item_id' => $item->id,
+            'type' => 'out',
+            'quantity' => $quantity,
+            'unit' => $validated['unit'],
+            'reference' => isset($validated['reference']) ? trim((string) $validated['reference']) : null,
+            'user_id' => auth()->id(),
+        ]);
+
+        $inventory->update(['stock_quantity' => $newStock]);
 
         return back()->with('success', 'Stock updated successfully.');
     }

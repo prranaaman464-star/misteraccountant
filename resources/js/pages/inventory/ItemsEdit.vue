@@ -611,16 +611,7 @@ onClickOutside(categoryDropdownRef, () => {
                                         />
                                         <Checkbox
                                             id="gst_applicable"
-                                            :checked="gstApplicable"
-                                            @update:checked="
-                                                (
-                                                    val:
-                                                        | boolean
-                                                        | 'indeterminate',
-                                                ) =>
-                                                    (gstApplicable =
-                                                        val === true)
-                                            "
+                                            v-model="gstApplicable"
                                         />
                                         <Label
                                             for="gst_applicable"
@@ -901,16 +892,7 @@ onClickOutside(categoryDropdownRef, () => {
                                         />
                                         <Checkbox
                                             id="price_inclusive_of_tax"
-                                            :checked="priceInclusiveOfTax"
-                                            @update:checked="
-                                                (
-                                                    val:
-                                                        | boolean
-                                                        | 'indeterminate',
-                                                ) =>
-                                                    (priceInclusiveOfTax =
-                                                        val === true)
-                                            "
+                                            v-model="priceInclusiveOfTax"
                                         />
                                         <Label
                                             for="price_inclusive_of_tax"
@@ -1200,16 +1182,7 @@ onClickOutside(categoryDropdownRef, () => {
                                         />
                                         <Checkbox
                                             id="batch_enabled"
-                                            :checked="batchEnabled"
-                                            @update:checked="
-                                                (
-                                                    val:
-                                                        | boolean
-                                                        | 'indeterminate',
-                                                ) =>
-                                                    (batchEnabled =
-                                                        val === true)
-                                            "
+                                            v-model="batchEnabled"
                                         />
                                         <Label
                                             for="batch_enabled"
@@ -1227,16 +1200,7 @@ onClickOutside(categoryDropdownRef, () => {
                                         />
                                         <Checkbox
                                             id="expiry_date_tracking"
-                                            :checked="expiryDateTracking"
-                                            @update:checked="
-                                                (
-                                                    val:
-                                                        | boolean
-                                                        | 'indeterminate',
-                                                ) =>
-                                                    (expiryDateTracking =
-                                                        val === true)
-                                            "
+                                            v-model="expiryDateTracking"
                                         />
                                         <Label
                                             for="expiry_date_tracking"
@@ -1254,16 +1218,7 @@ onClickOutside(categoryDropdownRef, () => {
                                         />
                                         <Checkbox
                                             id="serial_number_tracking"
-                                            :checked="serialNumberTracking"
-                                            @update:checked="
-                                                (
-                                                    val:
-                                                        | boolean
-                                                        | 'indeterminate',
-                                                ) =>
-                                                    (serialNumberTracking =
-                                                        val === true)
-                                            "
+                                            v-model="serialNumberTracking"
                                         />
                                         <Label
                                             for="serial_number_tracking"
@@ -1406,16 +1361,7 @@ onClickOutside(categoryDropdownRef, () => {
                                         />
                                         <Checkbox
                                             id="e_invoice_applicable"
-                                            :checked="eInvoiceApplicable"
-                                            @update:checked="
-                                                (
-                                                    val:
-                                                        | boolean
-                                                        | 'indeterminate',
-                                                ) =>
-                                                    (eInvoiceApplicable =
-                                                        val === true)
-                                            "
+                                            v-model="eInvoiceApplicable"
                                         />
                                         <Label
                                             for="e_invoice_applicable"
@@ -1433,16 +1379,7 @@ onClickOutside(categoryDropdownRef, () => {
                                         />
                                         <Checkbox
                                             id="e_way_bill_applicable"
-                                            :checked="eWayBillApplicable"
-                                            @update:checked="
-                                                (
-                                                    val:
-                                                        | boolean
-                                                        | 'indeterminate',
-                                                ) =>
-                                                    (eWayBillApplicable =
-                                                        val === true)
-                                            "
+                                            v-model="eWayBillApplicable"
                                         />
                                         <Label
                                             for="e_way_bill_applicable"
