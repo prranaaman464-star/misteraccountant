@@ -47,7 +47,9 @@ const form = useForm({
 });
 
 const page = usePage();
-const flash = page.props.flash as { success?: string; error?: string } | undefined;
+const flash = page.props.flash as
+    | { success?: string; error?: string }
+    | undefined;
 
 function submitAddMember() {
     form.post('/manage/members', {
@@ -64,7 +66,9 @@ function submitAddMember() {
     <Head title="Manage Users" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+        <div
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
+        >
             <div class="flex flex-col gap-4">
                 <div
                     v-if="flash?.success"
@@ -82,11 +86,18 @@ function submitAddMember() {
                     <div>
                         <h1 class="text-xl font-semibold">Manage Users</h1>
                         <p class="text-muted-foreground">
-                            Organization: <strong>{{ organization.name }}</strong>
-                            <span v-if="memberLimit !== null" class="ml-2 text-sm">
-                                ({{ members.length }} / {{ memberLimit }} members)
+                            Organization:
+                            <strong>{{ organization.name }}</strong>
+                            <span
+                                v-if="memberLimit !== null"
+                                class="ml-2 text-sm"
+                            >
+                                ({{ members.length }} /
+                                {{ memberLimit }} members)
                             </span>
-                            <span v-else class="ml-2 text-sm">({{ members.length }} members)</span>
+                            <span v-else class="ml-2 text-sm"
+                                >({{ members.length }} members)</span
+                            >
                         </p>
                     </div>
                     <Dialog v-model:open="addMemberOpen">
@@ -103,11 +114,15 @@ function submitAddMember() {
                             <DialogHeader>
                                 <DialogTitle>Add team member</DialogTitle>
                                 <DialogDescription>
-                                    Add a member by email. If they don't have an account, they'll
-                                    receive a link to set their password.
+                                    Add a member by email. If they don't have an
+                                    account, they'll receive a link to set their
+                                    password.
                                 </DialogDescription>
                             </DialogHeader>
-                            <form @submit.prevent="submitAddMember" class="space-y-4">
+                            <form
+                                @submit.prevent="submitAddMember"
+                                class="space-y-4"
+                            >
                                 <div class="grid gap-2">
                                     <Label for="member-email">Email</Label>
                                     <Input
@@ -121,7 +136,9 @@ function submitAddMember() {
                                     <InputError :message="form.errors.email" />
                                 </div>
                                 <div class="grid gap-2">
-                                    <Label for="member-name">Name (optional)</Label>
+                                    <Label for="member-name"
+                                        >Name (optional)</Label
+                                    >
                                     <Input
                                         id="member-name"
                                         v-model="form.name"
@@ -136,7 +153,7 @@ function submitAddMember() {
                                     <select
                                         id="member-role"
                                         v-model="form.role"
-                                        class="border-input bg-transparent h-9 w-full rounded-md border px-3 py-1 text-sm"
+                                        class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
                                     >
                                         <option value="admin">Admin</option>
                                         <option value="staff">Staff</option>
@@ -152,7 +169,10 @@ function submitAddMember() {
                                     >
                                         Cancel
                                     </Button>
-                                    <Button type="submit" :disabled="form.processing">
+                                    <Button
+                                        type="submit"
+                                        :disabled="form.processing"
+                                    >
                                         Add member
                                     </Button>
                                 </DialogFooter>
@@ -164,11 +184,15 @@ function submitAddMember() {
                 <div class="rounded-lg border border-sidebar-border">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="border-b border-sidebar-border bg-muted/50">
+                            <tr
+                                class="border-b border-sidebar-border bg-muted/50"
+                            >
                                 <th class="p-3 text-left font-medium">Name</th>
                                 <th class="p-3 text-left font-medium">Email</th>
                                 <th class="p-3 text-left font-medium">Role</th>
-                                <th class="p-3 text-left font-medium">Status</th>
+                                <th class="p-3 text-left font-medium">
+                                    Status
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -179,17 +203,30 @@ function submitAddMember() {
                             >
                                 <td class="p-3">{{ member.name }}</td>
                                 <td class="p-3">{{ member.email }}</td>
-                                <td class="p-3 capitalize">{{ member.role }}</td>
+                                <td class="p-3 capitalize">
+                                    {{ member.role }}
+                                </td>
                                 <td class="p-3">
                                     <span
-                                        :class="member.is_active ? 'text-green-600' : 'text-muted-foreground'"
+                                        :class="
+                                            member.is_active
+                                                ? 'text-green-600'
+                                                : 'text-muted-foreground'
+                                        "
                                     >
-                                        {{ member.is_active ? 'Active' : 'Inactive' }}
+                                        {{
+                                            member.is_active
+                                                ? 'Active'
+                                                : 'Inactive'
+                                        }}
                                     </span>
                                 </td>
                             </tr>
                             <tr v-if="members.length === 0">
-                                <td colspan="4" class="p-6 text-center text-muted-foreground">
+                                <td
+                                    colspan="4"
+                                    class="p-6 text-center text-muted-foreground"
+                                >
                                     No members yet.
                                 </td>
                             </tr>

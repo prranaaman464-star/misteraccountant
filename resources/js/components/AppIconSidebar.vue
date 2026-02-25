@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import {
-    Plus,
-    Settings,
-    LogOut,
-} from 'lucide-vue-next';
+import { Plus, Settings, LogOut } from 'lucide-vue-next';
 import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
@@ -15,8 +11,20 @@ const handleLogout = () => {
 };
 
 const iconItems = [
-    { id: 'Settings', icon: Settings, label: 'Settings', href: edit(), isLogout: false },
-    { id: 'logout', icon: LogOut, label: 'Logout', href: logout(), isLogout: true },
+    {
+        id: 'Settings',
+        icon: Settings,
+        label: 'Settings',
+        href: edit(),
+        isLogout: false,
+    },
+    {
+        id: 'logout',
+        icon: LogOut,
+        label: 'Logout',
+        href: logout(),
+        isLogout: true,
+    },
 ];
 </script>
 
@@ -25,7 +33,9 @@ const iconItems = [
         class="fixed inset-y-0 left-0 z-20 hidden h-svh w-14 shrink-0 flex-col border-r border-zinc-700/50 bg-zinc-800 md:flex"
         aria-label="Icon navigation"
     >
-        <nav class="flex h-full flex-col justify-between items-center px-2 py-4">
+        <nav
+            class="flex h-full flex-col items-center justify-between px-2 py-4"
+        >
             <!-- TOP ICON -->
             <div>
                 <Button
@@ -44,9 +54,11 @@ const iconItems = [
                     :key="item.id"
                     :href="item.href"
                     :title="item.label"
-                    :class="cn(
-                        'flex size-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30'
-                    )"
+                    :class="
+                        cn(
+                            'flex size-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30',
+                        )
+                    "
                 >
                     <component :is="item.icon" class="size-5" aria-hidden />
                 </Link>
@@ -55,10 +67,15 @@ const iconItems = [
                     :key="item.id"
                     type="button"
                     :title="item.label"
-                    :class="cn(
-                        'flex size-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30'
-                    )"
-                    @click="handleLogout(); router.post(item.href)"
+                    :class="
+                        cn(
+                            'flex size-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30',
+                        )
+                    "
+                    @click="
+                        handleLogout();
+                        router.post(item.href);
+                    "
                 >
                     <component :is="item.icon" class="size-5" aria-hidden />
                 </button>

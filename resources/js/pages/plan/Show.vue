@@ -52,7 +52,9 @@ function daysLeft(iso: string | null): number | null {
     if (!iso) return null;
     const end = new Date(iso);
     const now = new Date();
-    const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const diff = Math.ceil(
+        (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
     return diff > 0 ? diff : 0;
 }
 </script>
@@ -61,7 +63,9 @@ function daysLeft(iso: string | null): number | null {
     <Head title="My Plan" />
 
     <AppLayout :breadcrumbs="[{ title: 'My Plan', href: '/plan' }]">
-        <div class="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4">
+        <div
+            class="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4"
+        >
             <div class="flex flex-col gap-4">
                 <h1 class="text-xl font-semibold">Plan & subscription</h1>
 
@@ -72,10 +76,14 @@ function daysLeft(iso: string | null): number | null {
                 </template>
 
                 <template v-if="plan && subscription">
-                    <div class="grid gap-4 rounded-lg border border-sidebar-border p-4 md:grid-cols-2">
+                    <div
+                        class="grid gap-4 rounded-lg border border-sidebar-border p-4 md:grid-cols-2"
+                    >
                         <div>
                             <h2 class="font-medium">Current plan</h2>
-                            <p class="text-2xl font-semibold">{{ plan.name }}</p>
+                            <p class="text-2xl font-semibold">
+                                {{ plan.name }}
+                            </p>
                             <p class="text-muted-foreground">
                                 ${{ plan.price }}/{{ plan.billing_cycle }}
                             </p>
@@ -100,7 +108,11 @@ function daysLeft(iso: string | null): number | null {
                                 :action="'/plan/renew'"
                                 class="mt-3"
                             >
-                                <Button type="submit" variant="outline" size="sm">
+                                <Button
+                                    type="submit"
+                                    variant="outline"
+                                    size="sm"
+                                >
                                     <RefreshCw class="mr-2 size-4" />
                                     Renew plan
                                 </Button>
@@ -114,20 +126,23 @@ function daysLeft(iso: string | null): number | null {
                             Team members
                         </h2>
                         <p class="text-lg">
-                            <span class="font-semibold">{{ member_count }}</span>
+                            <span class="font-semibold">{{
+                                member_count
+                            }}</span>
                             <template v-if="plan.member_limit !== null">
                                 / {{ plan.member_limit }} used
                             </template>
-                            <template v-else>
-                                (unlimited)
-                            </template>
+                            <template v-else> (unlimited) </template>
                         </p>
                         <p class="mt-1 text-sm text-muted-foreground">
                             You can create
                             {{
                                 plan.member_limit === null
                                     ? 'unlimited'
-                                    : Math.max(0, plan.member_limit - member_count)
+                                    : Math.max(
+                                          0,
+                                          plan.member_limit - member_count,
+                                      )
                             }}
                             more team member(s).
                         </p>
@@ -139,10 +154,7 @@ function daysLeft(iso: string | null): number | null {
                     >
                         <h2 class="mb-2 font-medium">Included modules</h2>
                         <ul class="list-inside list-disc text-muted-foreground">
-                            <li
-                                v-for="mod in plan.modules"
-                                :key="mod.name"
-                            >
+                            <li v-for="mod in plan.modules" :key="mod.name">
                                 {{ mod.name }}
                             </li>
                         </ul>
@@ -159,7 +171,11 @@ function daysLeft(iso: string | null): number | null {
                                 :key="fl.feature_name"
                             >
                                 {{ fl.feature_name }}:
-                                {{ fl.limit_value === null ? 'Unlimited' : fl.limit_value }}
+                                {{
+                                    fl.limit_value === null
+                                        ? 'Unlimited'
+                                        : fl.limit_value
+                                }}
                             </li>
                         </ul>
                     </div>
@@ -167,10 +183,7 @@ function daysLeft(iso: string | null): number | null {
 
                 <template v-else>
                     <p class="text-muted-foreground">No active subscription.</p>
-                    <Link
-                        :href="dashboard()"
-                        class="text-primary underline"
-                    >
+                    <Link :href="dashboard()" class="text-primary underline">
                         Go to dashboard
                     </Link>
                 </template>

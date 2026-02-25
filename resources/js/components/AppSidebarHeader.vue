@@ -39,24 +39,30 @@ const auth = computed(() => page.props.auth);
             </template>
         </div>
 
-        <div class="min-w-0 flex-1 mx-4">
-            <div class="flex items-center gap-2 w-full h-full border border-input rounded-md">
-                <input type="text" name="search" id="search" placeholder="Search" class="min-w-0 flex-1 h-9 px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive w-full">
+        <div class="mx-4 min-w-0 flex-1">
+            <div
+                class="flex h-full w-full items-center gap-2 rounded-md border border-input"
+            >
+                <input
+                    type="text"
+                    name="search"
+                    id="search"
+                    placeholder="Search"
+                    class="h-9 w-full min-w-0 flex-1 px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
+                />
             </div>
         </div>
 
         <div class="ml-auto flex items-center gap-2">
-
             <!-- Contact expert -->
-             <div class="flex items-center gap-4 border border-input rounded-md">
+            <div class="flex items-center gap-4 rounded-md border border-input">
                 <label
                     for="contact-expert"
-                    class="text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer py-2 px-4"
+                    class="cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
                 >
                     Contact expert
                 </label>
-             </div>
-
+            </div>
 
             <!-- notification button -->
             <Button
@@ -64,8 +70,7 @@ const auth = computed(() => page.props.auth);
                 size="icon"
                 class="group h-9 w-9 cursor-pointer"
             >
-                <Bell
-                    class="size-5 opacity-80 group-hover:opacity-100"/>
+                <Bell class="size-5 opacity-80 group-hover:opacity-100" />
             </Button>
             <DropdownMenu>
                 <DropdownMenuTrigger :as-child="true">
@@ -74,9 +79,7 @@ const auth = computed(() => page.props.auth);
                         size="icon"
                         class="relative size-10 w-auto rounded-full p-1 focus-within:ring-2 focus-within:ring-primary"
                     >
-                        <Avatar
-                            class="size-8 overflow-hidden rounded-full"
-                        >
+                        <Avatar class="size-8 overflow-hidden rounded-full">
                             <AvatarImage
                                 v-if="auth.user.avatar"
                                 :src="auth.user.avatar"
