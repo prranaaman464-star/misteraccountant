@@ -77,7 +77,11 @@ class ManageController extends Controller
             || $request->user()->hasRoleInOrganization($organization, 'admin');
 
         return Inertia::render('manage/Users', [
-            'organization' => ['id' => $organization->id, 'name' => $organization->name],
+            'organization' => [
+                'id' => $organization->id,
+                'name' => $organization->name,
+                'owner_id' => $organization->owner_id,
+            ],
             'members' => $members,
             'memberLimit' => $memberLimit,
             'canAddMore' => $canAddMore,
@@ -136,6 +140,84 @@ class ManageController extends Controller
         Password::sendResetLink(['email' => $email]);
 
         return redirect()->route('manage.users')->with('success', 'Team member created. They will receive an email to set their password.');
+    }
+
+    /**
+     * Export members as CSV (optionally filtered by ids).
+     */
+    public function membersCsv(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $organization = $this->currentOrganization($request);
+        if (! $organization) {
+            abort(404);
+        }
+
+        $ids = $request->has('ids')
+            ? array_filter(array_map('intval', (array) $request->ids))
+            : null;
+
+        $query = $organization->users()->withPivot('role', 'is_active', 'joined_at')->orderByPivot('joined_at', 'desc');
+
+        if ($ids !== null && count($ids) > 0) {
+            $query->whereIn('users.id', $ids);
+        }
+
+        $members = $query->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="members.csv"',
+        ];
+
+        return response()->stream(function () use ($members) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Name', 'Email', 'Role', 'Status', 'Joined At']);
+            foreach ($members as $user) {
+                fputcsv($out, [
+                    $user->name,
+                    $user->email,
+                    $user->pivot->role ?? '',
+                    $user->pivot->is_active ? 'Active' : 'Inactive',
+                    $user->pivot->joined_at ?? '',
+                ]);
+            }
+            fclose($out);
+        }, 200, $headers);
+    }
+
+    /**
+     * Bulk remove members from organization (admin/owner only). Cannot remove owner.
+     */
+    public function bulkRemoveMembers(Request $request): RedirectResponse
+    {
+        $organization = $this->currentOrganization($request);
+        if (! $organization) {
+            return redirect()->route('manage.users')->with('error', 'Organization not found.');
+        }
+
+        if (! $request->user()->hasRoleInOrganization($organization, 'owner')
+            && ! $request->user()->hasRoleInOrganization($organization, 'admin')) {
+            return redirect()->route('manage.users')->with('error', 'You do not have permission to remove members.');
+        }
+
+        $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $ownerId = $organization->owner_id;
+        $idsToRemove = array_filter(array_map('intval', $request->ids), fn ($id) => $id !== $ownerId);
+
+        $organization->users()->detach($idsToRemove);
+
+        $removed = count($idsToRemove);
+        $skipped = count($request->ids) - $removed;
+
+        $message = $removed > 0
+            ? "Removed {$removed} member(s) successfully.".($skipped > 0 ? ' (Owner cannot be removed.)' : '')
+            : 'Owner cannot be removed.';
+
+        return redirect()->route('manage.users')->with('success', $message);
     }
 
     /**

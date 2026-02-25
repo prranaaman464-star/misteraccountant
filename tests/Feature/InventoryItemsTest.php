@@ -156,6 +156,22 @@ test('stock out validation fails when quantity exceeds current stock', function 
     expect((float) $item->inventory->stock_quantity)->toBe(5.0);
 });
 
+test('authenticated users can delete an item', function () {
+    $user = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $user->id]);
+    $org->users()->attach($user->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+
+    $item = Item::factory()->create();
+    $itemId = $item->id;
+
+    $response = $this->actingAs($user)
+        ->withSession(['current_organization_id' => $org->id])
+        ->delete(route('inventory.items.destroy', $item));
+
+    $response->assertRedirect(route('inventory.items'));
+    $this->assertDatabaseMissing('items', ['id' => $itemId]);
+});
+
 test('authenticated users can view an item with full details', function () {
     $user = User::factory()->create();
     $org = Organization::factory()->create(['owner_id' => $user->id]);

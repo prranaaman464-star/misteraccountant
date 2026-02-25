@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\CheckEmailController;
 use App\Http\Controllers\Auth\EmailController;
 use App\Http\Controllers\CurrentOrganizationController;
 use App\Http\Controllers\GetStarted\PlanController as GetStartedPlanController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Inventory\AllTransactionsController;
 use App\Http\Controllers\Inventory\BatchExpiryReportController;
 use App\Http\Controllers\Inventory\ItemsController;
@@ -51,6 +52,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('manage')->name('manage.')->group(function () {
             Route::get('/', [ManageController::class, 'index'])->name('index');
             Route::get('users', [ManageController::class, 'users'])->name('users');
+            Route::get('members/csv', [ManageController::class, 'membersCsv'])->name('members.csv');
+            Route::post('members/bulk-remove', [ManageController::class, 'bulkRemoveMembers'])->name('members.bulk-remove');
             Route::post('members', [ManageController::class, 'storeMember'])->name('members.store');
             Route::get('memberships', [ManageController::class, 'memberships'])->name('memberships');
             Route::get('permissions', [ManageController::class, 'permissions'])->name('permissions');
@@ -66,6 +69,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
+Route::get('search', GlobalSearchController::class)
+    ->middleware(['auth', 'verified', RedirectIfNoOrganization::class])
+    ->name('search');
+
 Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix('inventory')->group(function () {
     Route::get('items', [ItemsController::class, 'index'])->name('inventory.items');
     Route::get('items/create', [ItemsController::class, 'create'])->name('inventory.items.create');
@@ -74,7 +81,9 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
     Route::get('items/{item}', [ItemsController::class, 'show'])->name('inventory.items.show');
     Route::get('items/{item}/edit', [ItemsController::class, 'edit'])->name('inventory.items.edit');
     Route::put('items/{item}', [ItemsController::class, 'update'])->name('inventory.items.update');
+    Route::get('items/csv', [ItemsController::class, 'csv'])->name('inventory.items.csv');
     Route::delete('items/{item}', [ItemsController::class, 'destroy'])->name('inventory.items.destroy');
+    Route::post('items/bulk-destroy', [ItemsController::class, 'bulkDestroy'])->name('inventory.items.bulk-destroy');
     Route::post('items/{item}/stock-in', [ItemsController::class, 'stockIn'])->name('inventory.items.stock-in');
     Route::post('items/{item}/stock-out', [ItemsController::class, 'stockOut'])->name('inventory.items.stock-out');
 
@@ -83,6 +92,7 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
 
     // product-wise-pl
     Route::get('product-wise-pl', [ProductWisePlController::class, 'index'])->name('inventory.product-wise-pl');
+    Route::get('product-wise-pl/csv', [ProductWisePlController::class, 'csv'])->name('inventory.product-wise-pl.csv');
 
     // stock-value-report
     Route::get('stock-value-report', [StockValueReportController::class, 'index'])->name('inventory.stock-value-report');
