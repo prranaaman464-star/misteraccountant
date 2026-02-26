@@ -1,11 +1,5 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { dashboard } from '@/routes';
-import inventory from '@/routes/inventory';
-import { useDateTime } from '@/composables/useDateTime';
-import { useGreeting } from '@/composables/useGreeting';
-import { type BreadcrumbItem } from '@/types';
 import {
     CreditCard,
     DollarSign,
@@ -15,6 +9,12 @@ import {
     TrendingUp,
     Users,
 } from 'lucide-vue-next';
+import { useDateTime } from '@/composables/useDateTime';
+import { useGreeting } from '@/composables/useGreeting';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import inventory from '@/routes/inventory';
+import { type BreadcrumbItem } from '@/types';
 
 type Props = {
     user: { name: string };

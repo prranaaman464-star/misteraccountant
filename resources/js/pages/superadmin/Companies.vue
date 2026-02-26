@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ExternalLink } from 'lucide-vue-next';
 import SuperadminLayout from '@/layouts/SuperadminLayout.vue';
 import superadmin from '@/routes/superadmin';
 import { type BreadcrumbItem } from '@/types';
-import { ExternalLink } from 'lucide-vue-next';
 
 type Company = {
     id: number;

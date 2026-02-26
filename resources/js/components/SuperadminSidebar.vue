@@ -19,8 +19,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
 import superadmin from '@/routes/superadmin';
+import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
 
 const superadminNavItems: NavItem[] = [

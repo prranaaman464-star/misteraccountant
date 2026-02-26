@@ -1,10 +1,5 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import SuperadminLayout from '@/layouts/SuperadminLayout.vue';
-import superadmin from '@/routes/superadmin';
-import { useDateTime } from '@/composables/useDateTime';
-import { useGreeting } from '@/composables/useGreeting';
-import { type BreadcrumbItem } from '@/types';
 import {
     Building2,
     Eye,
@@ -16,6 +11,11 @@ import {
     UserX,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
+import { useDateTime } from '@/composables/useDateTime';
+import { useGreeting } from '@/composables/useGreeting';
+import SuperadminLayout from '@/layouts/SuperadminLayout.vue';
+import superadmin from '@/routes/superadmin';
+import { type BreadcrumbItem } from '@/types';
 
 type Props = {
     user: { name: string };
