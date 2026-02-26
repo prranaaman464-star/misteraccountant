@@ -38,7 +38,6 @@ const currentOrg = computed(
 );
 const orgsForSwitch = computed(() => {
     const orgs = auth.value.organizations ?? [];
-    const currentId = auth.value.current_organization_id;
     const current = auth.value.current_organization;
     if (current && !orgs.some((o) => o.id === current.id)) {
         return [current, ...orgs];

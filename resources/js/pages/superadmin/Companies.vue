@@ -128,8 +128,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 ? 'bg-primary text-primary-foreground'
                                 : 'hover:bg-muted',
                         ]"
-                        v-html="link.label"
-                    />
+                    >
+                        <span v-html="link.label" />
+                    </Link>
                 </div>
             </div>
         </div>

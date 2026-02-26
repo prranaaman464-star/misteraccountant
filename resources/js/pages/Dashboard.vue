@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import {
-    CreditCard,
     DollarSign,
     FileText,
-    Package,
-    ShoppingCart,
-    TrendingUp,
     Users,
 } from 'lucide-vue-next';
 import { useDateTime } from '@/composables/useDateTime';
