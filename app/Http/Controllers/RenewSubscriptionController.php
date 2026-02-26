@@ -28,7 +28,8 @@ class RenewSubscriptionController extends Controller
             return redirect()->route('dashboard')->with('error', 'Access denied.');
         }
 
-        if (! $user->hasRoleInOrganization($organization, 'owner')
+        if (! $user->isSuperadmin()
+            && ! $user->hasRoleInOrganization($organization, 'owner')
             && ! $user->hasRoleInOrganization($organization, 'admin')) {
             return redirect()->route('plan.show')->with('error', 'Only owners and admins can renew the plan.');
         }

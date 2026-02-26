@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Manage\StoreMemberRequest;
 use App\Http\Requests\Manage\StorePermissionRequest;
+use App\Http\Requests\Manage\UpdateMemberRequest;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -40,7 +41,16 @@ class ManageController extends Controller
         }
 
         $org = Organization::find($organizationId);
-        if (! $org || ! $request->user()?->belongsToOrganization($org)) {
+        if (! $org) {
+            return null;
+        }
+
+        $user = $request->user();
+        if ($user?->isSuperadmin()) {
+            return $org;
+        }
+
+        if (! $user?->belongsToOrganization($org)) {
             return null;
         }
 
@@ -72,8 +82,11 @@ class ManageController extends Controller
 
         $plan = $organization->currentPlan();
         $memberLimit = $plan?->member_limit;
-        $canAddMore = $memberLimit === null || $members->count() < $memberLimit;
-        $canManageMembers = $request->user()->hasRoleInOrganization($organization, 'owner')
+        $canAddMore = $request->user()->isSuperadmin()
+            || $memberLimit === null
+            || $members->count() < $memberLimit;
+        $canManageMembers = $request->user()->isSuperadmin()
+            || $request->user()->hasRoleInOrganization($organization, 'owner')
             || $request->user()->hasRoleInOrganization($organization, 'admin');
 
         return Inertia::render('manage/Users', [
@@ -139,6 +152,55 @@ class ManageController extends Controller
     }
 
     /**
+     * Update a member's role (admin/owner only).
+     */
+    public function updateMember(UpdateMemberRequest $request, User $user): RedirectResponse
+    {
+        $organization = $this->currentOrganization($request);
+        if (! $organization) {
+            return redirect()->route('manage.users')->with('error', 'Organization not found.');
+        }
+
+        if (! $user->belongsToOrganization($organization)) {
+            return redirect()->route('manage.users')->with('error', 'User is not a member of this organization.');
+        }
+
+        $organization->users()->updateExistingPivot($user->id, [
+            'role' => $request->validated('role'),
+        ]);
+
+        return redirect()->route('manage.users')->with('success', 'Member role updated successfully.');
+    }
+
+    /**
+     * Remove a member from the organization (admin/owner only).
+     */
+    public function destroyMember(Request $request, User $user): RedirectResponse
+    {
+        $organization = $this->currentOrganization($request);
+        if (! $organization) {
+            return redirect()->route('manage.users')->with('error', 'Organization not found.');
+        }
+
+        $authUser = $request->user();
+        if (! $authUser->isSuperadmin() && ! $authUser->hasRoleInOrganization($organization, 'owner') && ! $authUser->hasRoleInOrganization($organization, 'admin')) {
+            abort(403, 'You are not authorized to remove members.');
+        }
+
+        if (! $user->belongsToOrganization($organization)) {
+            return redirect()->route('manage.users')->with('error', 'User is not a member of this organization.');
+        }
+
+        if (! $authUser->isSuperadmin() && $user->id === $authUser->id) {
+            return redirect()->route('manage.users')->with('error', 'You cannot remove yourself.');
+        }
+
+        $organization->users()->detach($user->id);
+
+        return redirect()->route('manage.users')->with('success', 'Member removed successfully.');
+    }
+
+    /**
      * Manage Memberships - subscription & members overview.
      */
     public function memberships(Request $request): Response|RedirectResponse
@@ -192,7 +254,8 @@ class ManageController extends Controller
             'key' => $p->key,
         ]);
 
-        $canManageOrganization = $request->user()->hasRoleInOrganization($organization, 'owner')
+        $canManageOrganization = $request->user()->isSuperadmin()
+            || $request->user()->hasRoleInOrganization($organization, 'owner')
             || $request->user()->hasRoleInOrganization($organization, 'admin');
 
         return Inertia::render('manage/Permissions', [

@@ -19,7 +19,8 @@ class StorePermissionRequest extends FormRequest
             return false;
         }
 
-        return $this->user()->hasRoleInOrganization($organization, 'owner')
+        return $this->user()->isSuperadmin()
+            || $this->user()->hasRoleInOrganization($organization, 'owner')
             || $this->user()->hasRoleInOrganization($organization, 'admin');
     }
 
@@ -65,7 +66,15 @@ class StorePermissionRequest extends FormRequest
 
         $org = Organization::find($organizationId);
 
-        if (! $org || ! $this->user()->belongsToOrganization($org)) {
+        if (! $org) {
+            return null;
+        }
+
+        if ($this->user()->isSuperadmin()) {
+            return $org;
+        }
+
+        if (! $this->user()->belongsToOrganization($org)) {
             return null;
         }
 

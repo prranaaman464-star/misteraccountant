@@ -77,6 +77,70 @@ test('staff cannot add team member', function () {
     $response->assertForbidden();
 });
 
+test('admin can update member role', function () {
+    $admin = User::factory()->create();
+    $member = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $admin->id]);
+    $org->users()->attach($admin->id, ['role' => 'admin', 'is_active' => true, 'joined_at' => now()]);
+    $org->users()->attach($member->id, ['role' => 'staff', 'is_active' => true, 'joined_at' => now()]);
+
+    $response = $this->actingAs($admin)
+        ->withSession(['current_organization_id' => $org->id])
+        ->put(route('manage.members.update', $member), ['role' => 'admin']);
+
+    $response->assertRedirect(route('manage.users'));
+    $response->assertSessionHas('success');
+    expect($org->users()->find($member->id)->pivot->role)->toBe('admin');
+});
+
+test('admin can remove member', function () {
+    $admin = User::factory()->create();
+    $member = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $admin->id]);
+    $org->users()->attach($admin->id, ['role' => 'admin', 'is_active' => true, 'joined_at' => now()]);
+    $org->users()->attach($member->id, ['role' => 'staff', 'is_active' => true, 'joined_at' => now()]);
+
+    $response = $this->actingAs($admin)
+        ->withSession(['current_organization_id' => $org->id])
+        ->delete(route('manage.members.destroy', $member));
+
+    $response->assertRedirect(route('manage.users'));
+    $response->assertSessionHas('success');
+    expect($org->users()->where('users.id', $member->id)->exists())->toBeFalse();
+});
+
+test('staff cannot update member', function () {
+    $owner = User::factory()->create();
+    $staff = User::factory()->create();
+    $member = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $owner->id]);
+    $org->users()->attach($owner->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+    $org->users()->attach($staff->id, ['role' => 'staff', 'is_active' => true, 'joined_at' => now()]);
+    $org->users()->attach($member->id, ['role' => 'staff', 'is_active' => true, 'joined_at' => now()]);
+
+    $response = $this->actingAs($staff)
+        ->withSession(['current_organization_id' => $org->id])
+        ->put(route('manage.members.update', $member), ['role' => 'admin']);
+
+    $response->assertForbidden();
+});
+
+test('staff cannot remove member', function () {
+    $owner = User::factory()->create();
+    $staff = User::factory()->create();
+    $member = User::factory()->create();
+    $org = Organization::factory()->create(['owner_id' => $owner->id]);
+    $org->users()->attach($owner->id, ['role' => 'owner', 'is_active' => true, 'joined_at' => now()]);
+    $org->users()->attach($staff->id, ['role' => 'staff', 'is_active' => true, 'joined_at' => now()]);
+    $org->users()->attach($member->id, ['role' => 'staff', 'is_active' => true, 'joined_at' => now()]);
+
+    $response = $this->actingAs($staff)
+        ->withSession(['current_organization_id' => $org->id])
+        ->delete(route('manage.members.destroy', $member));
+
+    $response->assertForbidden();
+});
+
 test('staff cannot create permission', function () {
     $owner = User::factory()->create();
     $staff = User::factory()->create();
