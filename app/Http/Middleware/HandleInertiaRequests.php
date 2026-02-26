@@ -37,23 +37,31 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $currentOrgId = session('current_organization_id');
-        $currentOrg = $currentOrgId && $user
-            ? $user->organizations()->find($currentOrgId)
-            : null;
+        $currentOrg = null;
+        if ($currentOrgId && $user) {
+            $currentOrg = $user->organizations()->find($currentOrgId);
+            if (! $currentOrg && $user->isSuperadmin()) {
+                $currentOrg = \App\Models\Organization::find($currentOrgId);
+            }
+        }
         $currentRole = $currentOrg ? $user->getRoleInOrganization($currentOrg) : null;
-        $canManageOrganization = $currentRole === 'owner' || $currentRole === 'admin';
+        $canManageOrganization = $user?->isSuperadmin()
+            || $currentRole === 'owner'
+            || $currentRole === 'admin';
 
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
                 'user' => $user,
+                'is_superadmin' => $user?->isSuperadmin() ?? false,
                 'organizations' => $user?->organizations()->with(['subscriptions' => function ($query) {
                     $query->where('status', 'active')
                         ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', now()))
                         ->with('plan');
                 }])->get() ?? [],
                 'current_organization_id' => $currentOrgId,
+                'current_organization' => $currentOrg ? ['id' => $currentOrg->id, 'name' => $currentOrg->name] : null,
                 'current_organization_role' => $currentRole,
                 'can_manage_organization' => $canManageOrganization,
             ],

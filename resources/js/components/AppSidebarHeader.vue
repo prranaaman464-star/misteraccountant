@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
-import { Bell } from 'lucide-vue-next';
+import { router, usePage } from '@inertiajs/vue3';
+import { Bell, ChevronDown } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -25,7 +26,29 @@ withDefaults(
 );
 
 const page = usePage();
-const auth = computed(() => page.props.auth);
+const auth = computed(() => page.props.auth as {
+    user: { name: string; avatar?: string };
+    organizations?: Array<{ id: number; name: string }>;
+    current_organization_id?: number;
+    current_organization?: { id: number; name: string };
+});
+
+const currentOrg = computed(
+    () => auth.value.current_organization ?? null,
+);
+const orgsForSwitch = computed(() => {
+    const orgs = auth.value.organizations ?? [];
+    const current = auth.value.current_organization;
+    if (current && !orgs.some((o) => o.id === current.id)) {
+        return [current, ...orgs];
+    }
+    return orgs;
+});
+const hasMultipleOrgs = computed(() => orgsForSwitch.value.length > 1);
+
+function switchOrganization(orgId: number) {
+    router.put('/current-organization', { organization_id: orgId });
+}
 </script>
 
 <template>
@@ -34,7 +57,38 @@ const auth = computed(() => page.props.auth);
     >
         <div class="flex items-center gap-2">
             <SidebarTrigger class="-ml-1" />
-            <template v-if="breadcrumbs && breadcrumbs.length > 0">
+            <template v-if="currentOrg">
+                <DropdownMenu v-if="hasMultipleOrgs">
+                    <DropdownMenuTrigger as-child>
+                        <Button
+                            variant="ghost"
+                            class="h-9 gap-1 px-2 font-semibold"
+                        >
+                            {{ currentOrg.name }}
+                            <ChevronDown class="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" class="min-w-[12rem]">
+                        <DropdownMenuItem
+                            v-for="org in orgsForSwitch"
+                            :key="org.id"
+                            :class="{
+                                'bg-accent': org.id === auth.current_organization_id,
+                            }"
+                            @click="switchOrganization(org.id)"
+                        >
+                            {{ org.name }}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <span
+                    v-else
+                    class="px-2 font-semibold"
+                >
+                    {{ currentOrg.name }}
+                </span>
+            </template>
+            <template v-else-if="breadcrumbs && breadcrumbs.length > 0">
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </template>
         </div>

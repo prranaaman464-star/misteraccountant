@@ -24,6 +24,13 @@ class RedirectIfNoOrganization
         $organizationCount = $user->organizations()->count();
 
         if ($organizationCount === 0 && ! $request->routeIs('onboarding.*')) {
+            if ($user->isSuperadmin() && session('current_organization_id')) {
+                return $next($request);
+            }
+            if ($user->isSuperadmin()) {
+                return redirect()->route('superadmin.dashboard');
+            }
+
             return redirect()->route('onboarding.organizations.create');
         }
 

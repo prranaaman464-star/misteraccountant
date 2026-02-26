@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\CheckEmailController;
 use App\Http\Controllers\Auth\EmailController;
 use App\Http\Controllers\CurrentOrganizationController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GetStarted\PlanController as GetStartedPlanController;
 use App\Http\Controllers\Inventory\AllTransactionsController;
 use App\Http\Controllers\Inventory\BatchExpiryReportController;
@@ -12,11 +13,20 @@ use App\Http\Controllers\Inventory\ProductWisePlController;
 use App\Http\Controllers\Inventory\StockValueReportController;
 use App\Http\Controllers\Inventory\WarehousesController;
 use App\Http\Controllers\Manage\ManageController;
-use App\Http\Controllers\Onboarding\OrganizationController;
+use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\Onboarding\OrganizationController as OnboardingOrganizationController;
 use App\Http\Controllers\Onboarding\PlanController;
 use App\Http\Controllers\PlanDetailController;
 use App\Http\Controllers\PostAuthRedirectController;
 use App\Http\Controllers\RenewSubscriptionController;
+use App\Http\Controllers\Superadmin\CompaniesController;
+use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
+use App\Http\Controllers\Superadmin\DomainController;
+use App\Http\Controllers\Superadmin\PackagesController;
+use App\Http\Controllers\Superadmin\PurchaseTransactionController;
+use App\Http\Controllers\Superadmin\SubscriptionsController;
+use App\Http\Controllers\Superadmin\SwitchOrganizationController;
+use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\RedirectIfNoOrganization;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -40,18 +50,30 @@ Route::middleware('guest')->group(function () {
 Route::get('after-auth', PostAuthRedirectController::class)->middleware(['auth', 'verified'])->name('after-auth');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::middleware([EnsureSuperadmin::class])->prefix('superadmin')->name('superadmin.')->group(function () {
+        Route::get('dashboard', SuperadminDashboardController::class)->name('dashboard');
+        Route::get('companies', [CompaniesController::class, 'index'])->name('companies.index');
+        Route::post('switch-organization', SwitchOrganizationController::class)->name('switch-organization');
+        Route::get('subscriptions', [SubscriptionsController::class, 'index'])->name('subscriptions.index');
+        Route::get('packages', [PackagesController::class, 'index'])->name('packages.index');
+        Route::get('domain', [DomainController::class, 'index'])->name('domain.index');
+        Route::get('purchase-transaction', [PurchaseTransactionController::class, 'index'])->name('purchase-transaction.index');
+    });
+
     Route::middleware([RedirectIfNoOrganization::class])->group(function () {
-        Route::get('dashboard', function () {
-            return Inertia::render('Dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
         Route::get('plan', PlanDetailController::class)->name('plan.show');
         Route::post('plan/renew', RenewSubscriptionController::class)->name('plan.renew');
         Route::put('current-organization', [CurrentOrganizationController::class, 'update'])->name('current-organization.update');
+        Route::get('organization', [OrganizationController::class, 'show'])->name('organization.show');
+        Route::put('organization/{organization}', [OrganizationController::class, 'update'])->name('organization.update');
 
         Route::prefix('manage')->name('manage.')->group(function () {
             Route::get('/', [ManageController::class, 'index'])->name('index');
             Route::get('users', [ManageController::class, 'users'])->name('users');
             Route::post('members', [ManageController::class, 'storeMember'])->name('members.store');
+            Route::put('members/{user}', [ManageController::class, 'updateMember'])->name('members.update');
+            Route::delete('members/{user}', [ManageController::class, 'destroyMember'])->name('members.destroy');
             Route::get('memberships', [ManageController::class, 'memberships'])->name('memberships');
             Route::get('permissions', [ManageController::class, 'permissions'])->name('permissions');
             Route::post('permissions', [ManageController::class, 'storePermission'])->name('permissions.store');
@@ -59,8 +81,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('onboarding')->name('onboarding.')->group(function () {
-        Route::get('organizations/create', [OrganizationController::class, 'create'])->name('organizations.create');
-        Route::post('organizations', [OrganizationController::class, 'store'])->name('organizations.store');
+        Route::get('organizations/create', [OnboardingOrganizationController::class, 'create'])->name('organizations.create');
+        Route::post('organizations', [OnboardingOrganizationController::class, 'store'])->name('organizations.store');
         Route::get('plans', [PlanController::class, 'index'])->name('plans.index');
         Route::post('plans', [PlanController::class, 'store'])->name('plans.store');
     });

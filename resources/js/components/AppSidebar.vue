@@ -2,6 +2,7 @@
 import { Link, router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import {
+    Building2,
     Gem,
     LayoutGrid,
     Package,
@@ -32,6 +33,9 @@ import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage();
+const isSuperadmin = computed(
+    () => (page.props.auth as { is_superadmin?: boolean })?.is_superadmin ?? false,
+);
 const organizations = computed(
     () =>
         (
@@ -172,7 +176,21 @@ const manageNavItems: NavItem[] = [
     },
 ];
 
-const administrationNavItems: NavItem[] = [
+const administrationNavItems = computed<NavItem[]>(() => [
+    ...(isSuperadmin.value
+        ? [
+              {
+                  title: 'Super Admin',
+                  href: '/superadmin/dashboard',
+                  icon: LayoutGrid,
+              },
+          ]
+        : []),
+    {
+        title: 'Organization',
+        href: '/organization',
+        icon: Building2,
+    },
     {
         title: 'My Plan',
         href: '/plan',
@@ -188,7 +206,7 @@ const administrationNavItems: NavItem[] = [
         href: editProfile(),
         icon: Settings,
     },
-];
+]);
 
 const footerNavItems: NavItem[] = [
     {

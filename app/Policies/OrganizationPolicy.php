@@ -20,7 +20,8 @@ class OrganizationPolicy
      */
     public function view(User $user, Organization $organization): bool
     {
-        return $user->belongsToOrganization($organization);
+        return $user->isSuperadmin()
+            || $user->belongsToOrganization($organization);
     }
 
     /**
@@ -36,7 +37,8 @@ class OrganizationPolicy
      */
     public function update(User $user, Organization $organization): bool
     {
-        return $user->hasRoleInOrganization($organization, 'owner')
+        return $user->isSuperadmin()
+            || $user->hasRoleInOrganization($organization, 'owner')
             || $user->hasRoleInOrganization($organization, 'admin');
     }
 
@@ -45,7 +47,8 @@ class OrganizationPolicy
      */
     public function delete(User $user, Organization $organization): bool
     {
-        return $user->hasRoleInOrganization($organization, 'owner');
+        return $user->isSuperadmin()
+            || $user->hasRoleInOrganization($organization, 'owner');
     }
 
     /**
@@ -53,7 +56,8 @@ class OrganizationPolicy
      */
     public function inviteMember(User $user, Organization $organization): bool
     {
-        return $user->hasRoleInOrganization($organization, 'owner')
+        return $user->isSuperadmin()
+            || $user->hasRoleInOrganization($organization, 'owner')
             || $user->hasRoleInOrganization($organization, 'admin');
     }
 
@@ -62,7 +66,8 @@ class OrganizationPolicy
      */
     public function manageMembers(User $user, Organization $organization): bool
     {
-        return $user->hasRoleInOrganization($organization, 'owner')
+        return $user->isSuperadmin()
+            || $user->hasRoleInOrganization($organization, 'owner')
             || $user->hasRoleInOrganization($organization, 'admin');
     }
 }

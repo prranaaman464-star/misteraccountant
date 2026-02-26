@@ -18,8 +18,9 @@ class CurrentOrganizationController extends Controller
         ]);
 
         $organization = Organization::findOrFail($request->organization_id);
+        $user = $request->user();
 
-        if (! $request->user()?->belongsToOrganization($organization)) {
+        if (! $user?->isSuperadmin() && ! $user?->belongsToOrganization($organization)) {
             abort(403);
         }
 
