@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { useDebounceFn } from '@vueuse/core';
 import {
     ArrowDownToLine,
     ChevronDown,
@@ -9,12 +8,11 @@ import {
     PackageMinus,
     ChevronLeft,
     ChevronRight,
-    MoreHorizontal,
     Package,
     PackagePlus,
     Plus,
     Clock,
-    Search,
+    Trash2,
     X,
 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -43,7 +41,6 @@ import inventory from '@/routes/inventory';
 import {
     create,
     show,
-    edit,
     destroy,
     stockIn,
     stockOut,
@@ -184,26 +181,8 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Items', href: inventory.items.url() },
 ];
 
-const searchQuery = ref(props.filters?.search || '');
 const selectedItems = ref<number[]>([]);
 const columnsOpen = ref(false);
-
-const debouncedSearch = useDebounceFn(() => {
-    router.get(
-        inventory.items.url(),
-        {
-            search: searchQuery.value || undefined,
-            status: props.filters?.status,
-            item_type: props.filters?.item_type,
-            per_page: props.items.per_page,
-        },
-        { preserveState: true, replace: true },
-    );
-}, 400);
-
-watch(searchQuery, () => {
-    debouncedSearch();
-});
 
 function toggleSelectAll(checked: boolean | 'indeterminate'): void {
     if (checked === true) {
@@ -222,20 +201,30 @@ function toggleSelectItem(id: number): void {
     }
 }
 
-function handleSearch(): void {
-    router.get(
-        inventory.items.url(),
-        {
-            search: searchQuery.value || undefined,
-            status: props.filters?.status,
-            item_type: props.filters?.item_type,
-            per_page: props.items.per_page,
-        },
-        {
-            preserveState: true,
-            replace: true,
-        },
-    );
+function clearSelection(): void {
+    selectedItems.value = [];
+    bulkActionsOpen.value = false;
+}
+
+function downloadSelectedCsv(): void {
+    if (selectedItems.value.length === 0) return;
+    const ids = selectedItems.value.join(',');
+    window.location.href = `/inventory/items/csv?ids=${ids}`;
+}
+
+function handleBulkDelete(): void {
+    if (selectedItems.value.length === 0) return;
+    if (
+        !confirm(
+            `Are you sure you want to delete ${selectedItems.value.length} item(s)?`,
+        )
+    ) {
+        return;
+    }
+    bulkActionsOpen.value = false;
+    router.post('/inventory/items/bulk-destroy', {
+        ids: selectedItems.value,
+    });
 }
 
 function handleDelete(itemId: number): void {
@@ -284,6 +273,14 @@ const primaryUnitOptions: Record<string, string> = {
 };
 
 const stockModalOpen = ref(false);
+const bulkActionsOpen = ref(false);
+const bulkStockModalOpen = ref(false);
+const bulkStockType = ref<'in' | 'out'>('in');
+const bulkStockQuantity = ref('');
+const bulkStockUnit = ref('');
+const bulkStockReference = ref('');
+const bulkStockErrors = ref<Record<string, string>>({});
+const bulkStockSubmitting = ref(false);
 const stockModalItem = ref<Item | null>(null);
 const stockModalType = ref<'in' | 'out'>('in');
 const stockQuantity = ref('');
@@ -324,7 +321,95 @@ function closeStockModal(): void {
     stockErrors.value = {};
 }
 
-watch(stockModalOpen, (open) => {
+function openBulkStockModal(type: 'in' | 'out'): void {
+    bulkActionsOpen.value = false;
+    bulkStockType.value = type;
+    bulkStockQuantity.value = '';
+    bulkStockUnit.value = Object.keys(primaryUnitOptions)[0] || '';
+    bulkStockReference.value = '';
+    bulkStockErrors.value = {};
+    bulkStockModalOpen.value = true;
+}
+
+function closeBulkStockModal(): void {
+    bulkStockModalOpen.value = false;
+    bulkStockQuantity.value = '';
+    bulkStockUnit.value = '';
+    bulkStockReference.value = '';
+    bulkStockErrors.value = {};
+}
+
+async function submitBulkStockMovement(): Promise<void> {
+    if (selectedItems.value.length === 0) return;
+
+    bulkStockErrors.value = {};
+    const quantity = parseFloat(bulkStockQuantity.value);
+    if (Number.isNaN(quantity) || quantity <= 0) {
+        bulkStockErrors.value = {
+            quantity: 'Quantity must be greater than zero.',
+        };
+        return;
+    }
+
+    bulkStockSubmitting.value = true;
+    const csrfToken =
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute('content') ?? '';
+
+    const ids = [...selectedItems.value];
+    let failed = 0;
+
+    for (const itemId of ids) {
+        const url =
+            bulkStockType.value === 'in'
+                ? `/inventory/items/${itemId}/stock-in`
+                : `/inventory/items/${itemId}/stock-out`;
+
+        const formData = new FormData();
+        formData.append('quantity', String(quantity));
+        formData.append('unit', bulkStockUnit.value || '');
+        formData.append('reference', bulkStockReference.value.trim());
+        formData.append('_token', csrfToken);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                const msg =
+                    data?.errors?.quantity?.[0] ??
+                    data?.message ??
+                    'Request failed.';
+                bulkStockErrors.value = { general: msg };
+                failed++;
+                break;
+            }
+        } catch {
+            failed++;
+            bulkStockErrors.value = {
+                general: 'An error occurred. Please try again.',
+            };
+            break;
+        }
+    }
+
+    bulkStockSubmitting.value = false;
+    if (failed === 0) {
+        closeBulkStockModal();
+        clearSelection();
+        router.reload();
+    }
+}
+
+watch(stockModalOpen, (open: boolean) => {
     if (!open) {
         stockModalItem.value = null;
         stockQuantity.value = '';
@@ -439,7 +524,7 @@ const visibleColumnCount = computed(() => {
     return (
         (Object.keys(COLUMN_CONFIG) as ColumnKey[]).filter((k) =>
             isColumnVisible(k),
-        ).length + 4
+        ).length + 3
     );
 });
 </script>
@@ -477,43 +562,12 @@ const visibleColumnCount = computed(() => {
                 </div>
             </div>
 
-            <!-- Search, filters and column toggle -->
+            <!-- Column toggle -->
             <div
                 class="rounded-xl border border-sidebar-border/70 bg-card p-4 shadow-sm dark:border-sidebar-border"
             >
-                <div
-                    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3"
-                >
-                    <div class="relative min-w-0 flex-1">
-                        <Search
-                            class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                        />
-                        <Input
-                            v-model="searchQuery"
-                            placeholder="Search by name, code, brand, or description..."
-                            class="h-10 rounded-lg border-muted-foreground/20 bg-muted/30 pr-4 pl-9 transition-colors placeholder:text-muted-foreground focus-visible:bg-background focus-visible:ring-2"
-                            @keyup.enter="handleSearch"
-                        />
-                        <Button
-                            v-if="searchQuery"
-                            variant="ghost"
-                            size="icon"
-                            class="absolute top-1/2 right-1 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            @click="searchQuery = ''"
-                        >
-                            <X class="size-4" />
-                        </Button>
-                    </div>
-                    <div class="flex shrink-0 gap-2">
-                        <Button
-                            variant="outline"
-                            size="default"
-                            class="rounded-lg"
-                            @click="handleSearch"
-                        >
-                            <Search class="size-4" />
-                            Search
-                        </Button>
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-3">
+                    <div class="flex shrink-0">
                         <DropdownMenu v-model:open="columnsOpen">
                             <DropdownMenuTrigger as-child>
                                 <Button
@@ -522,13 +576,13 @@ const visibleColumnCount = computed(() => {
                                     class="rounded-lg"
                                 >
                                     <Columns3 class="size-4" />
-                                    Column
+                                    Columns
                                     <ChevronDown class="ml-1 size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 align="end"
-                                class="w-72 overflow-visible p-2"
+                                class="max-h-[min(320px,70vh)] w-72 overflow-y-auto p-2"
                             >
                                 <div
                                     v-for="key in COLUMN_ORDER"
@@ -567,16 +621,19 @@ const visibleColumnCount = computed(() => {
                         <tr
                             class="border-b border-sidebar-border/70 bg-muted/40 dark:border-sidebar-border"
                         >
-                            <th class="h-12 w-12 px-4 text-left align-middle">
+                            <th
+                                class="h-12 w-12 px-4 text-left align-middle"
+                                @click.stop
+                            >
                                 <Checkbox
-                                    :checked="
+                                    :model-value="
                                         isAllSelected
                                             ? true
                                             : isSomeSelected
                                               ? 'indeterminate'
                                               : false
                                     "
-                                    @update:checked="toggleSelectAll"
+                                    @update:model-value="toggleSelectAll"
                                 />
                             </th>
                             <th
@@ -649,7 +706,6 @@ const visibleColumnCount = computed(() => {
                             >
                                 Actions
                             </th>
-                            <th class="h-12 w-12 px-4"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -680,10 +736,13 @@ const visibleColumnCount = computed(() => {
                             :key="item.id"
                             class="group border-b border-sidebar-border/70 transition-colors hover:bg-muted/40 dark:border-sidebar-border"
                         >
-                            <td class="p-4 align-middle">
+                            <td
+                                class="p-4 align-middle"
+                                @click.stop
+                            >
                                 <Checkbox
-                                    :checked="selectedItems.includes(item.id)"
-                                    @update:checked="
+                                    :model-value="selectedItems.includes(item.id)"
+                                    @update:model-value="
                                         () => toggleSelectItem(item.id)
                                     "
                                 />
@@ -824,33 +883,16 @@ const visibleColumnCount = computed(() => {
                                     >
                                         <PackageMinus class="size-4" />
                                     </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        class="size-8 border-red-600 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-950"
+                                        title="Delete"
+                                        @click="handleDelete(item.id)"
+                                    >
+                                        <Trash2 class="size-4" />
+                                    </Button>
                                 </div>
-                            </td>
-                            <td class="p-4 align-middle">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger as-child>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            class="size-8"
-                                        >
-                                            <MoreHorizontal class="size-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem :as-child="true">
-                                            <Link :href="edit(item.id).url"
-                                                >Edit</Link
-                                            >
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            class="text-destructive"
-                                            @click="handleDelete(item.id)"
-                                        >
-                                            Delete
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
                             </td>
                         </tr>
                     </tbody>
@@ -944,6 +986,276 @@ const visibleColumnCount = computed(() => {
                     >
                 </div>
             </div>
+
+            <!-- Bulk actions bar (shown when items selected) - Teleport ensures visibility -->
+            <Teleport to="body">
+                <Transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="translate-y-full opacity-0"
+                    enter-to-class="translate-y-0 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="translate-y-0 opacity-100"
+                    leave-to-class="translate-y-full opacity-0"
+                >
+                    <div
+                        v-if="selectedItems.length > 0"
+                        class="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between gap-4 border-t border-sidebar-border/70 bg-card px-6 py-4 shadow-lg dark:border-sidebar-border"
+                    >
+                    <span class="text-sm font-medium">
+                        {{ selectedItems.length }}
+                        {{ selectedItems.length === 1 ? 'item' : 'items' }}
+                        selected
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <Button
+                            variant="default"
+                            size="default"
+                            class="rounded-lg"
+                            @click="downloadSelectedCsv"
+                        >
+                            <ArrowDownToLine class="size-4" />
+                            Download CSV
+                        </Button>
+                        <DropdownMenu v-model:open="bulkActionsOpen">
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="default"
+                                    size="default"
+                                    class="rounded-lg"
+                                >
+                                    Bulk Actions
+                                    <ChevronDown class="ml-1 size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                class="w-56"
+                            >
+                                <DropdownMenuItem
+                                    class="cursor-pointer"
+                                    @click="downloadSelectedCsv"
+                                >
+                                    <ArrowDownToLine class="mr-2 size-4" />
+                                    Download CSV
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    class="cursor-pointer"
+                                    @click="openBulkStockModal('in')"
+                                >
+                                    <PackagePlus class="mr-2 size-4" />
+                                    Bulk Adjust Stock
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    class="cursor-pointer text-destructive focus:text-destructive"
+                                    @click="handleBulkDelete"
+                                >
+                                    <Trash2 class="mr-2 size-4" />
+                                    Bulk Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-8 rounded-lg"
+                            aria-label="Clear selection"
+                            @click="clearSelection"
+                        >
+                            <X class="size-4" />
+                        </Button>
+                    </div>
+                    </div>
+                </Transition>
+            </Teleport>
+
+            <!-- Bulk Stock Adjust Modal -->
+            <Dialog v-model:open="bulkStockModalOpen">
+                <DialogContent
+                    class="gap-0 overflow-hidden p-0 sm:max-w-lg"
+                    @pointer-down-outside="closeBulkStockModal"
+                >
+                    <div
+                        class="flex items-center gap-3 border-b border-sidebar-border/70 px-6 py-4 dark:border-sidebar-border"
+                        :class="
+                            bulkStockType === 'in'
+                                ? 'bg-emerald-500/10 dark:bg-emerald-500/15'
+                                : 'bg-red-500/10 dark:bg-red-500/15'
+                        "
+                    >
+                        <div
+                            class="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                            :class="
+                                bulkStockType === 'in'
+                                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                            "
+                        >
+                            <PackagePlus
+                                v-if="bulkStockType === 'in'"
+                                class="size-6"
+                            />
+                            <PackageMinus
+                                v-else
+                                class="size-6"
+                            />
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <DialogTitle class="text-lg font-semibold">
+                                Bulk
+                                {{
+                                    bulkStockType === 'in'
+                                        ? 'Stock In'
+                                        : 'Stock Out'
+                                }}
+                            </DialogTitle>
+                            <p class="mt-0.5 text-sm text-muted-foreground">
+                                Apply to {{ selectedItems.length }} selected
+                                item(s)
+                            </p>
+                        </div>
+                    </div>
+
+                    <form
+                        class="flex flex-col gap-0"
+                        @submit.prevent="submitBulkStockMovement"
+                    >
+                        <div class="flex flex-col gap-4 px-6 py-5">
+                            <div
+                                v-if="bulkStockErrors.general"
+                                class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+                            >
+                                {{ bulkStockErrors.general }}
+                            </div>
+
+                            <div class="flex gap-2">
+                                <Button
+                                    type="button"
+                                    :variant="
+                                        bulkStockType === 'in'
+                                            ? 'default'
+                                            : 'outline'
+                                    "
+                                    class="flex-1"
+                                    @click="bulkStockType = 'in'"
+                                >
+                                    <PackagePlus class="mr-2 size-4" />
+                                    Stock In
+                                </Button>
+                                <Button
+                                    type="button"
+                                    :variant="
+                                        bulkStockType === 'out'
+                                            ? 'default'
+                                            : 'outline'
+                                    "
+                                    class="flex-1"
+                                    @click="bulkStockType = 'out'"
+                                >
+                                    <PackageMinus class="mr-2 size-4" />
+                                    Stock Out
+                                </Button>
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label
+                                    for="bulk-stock-unit"
+                                    class="flex items-center gap-1 font-medium"
+                                >
+                                    Units
+                                    <span class="text-destructive">*</span>
+                                </Label>
+                                <select
+                                    id="bulk-stock-unit"
+                                    v-model="bulkStockUnit"
+                                    required
+                                    class="flex h-11 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                >
+                                    <option
+                                        v-for="(label, value) in primaryUnitOptions"
+                                        :key="value"
+                                        :value="value"
+                                    >
+                                        {{ label }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label
+                                    for="bulk-stock-quantity"
+                                    class="flex items-center gap-1 font-medium"
+                                >
+                                    Quantity
+                                    <span class="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    id="bulk-stock-quantity"
+                                    v-model="bulkStockQuantity"
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    placeholder="e.g. 15"
+                                    class="h-11"
+                                    required
+                                />
+                                <InputError
+                                    :message="bulkStockErrors.quantity"
+                                />
+                            </div>
+
+                            <div class="space-y-2">
+                                <Label
+                                    for="bulk-stock-notes"
+                                    class="font-medium text-muted-foreground"
+                                >
+                                    Notes (optional)
+                                </Label>
+                                <textarea
+                                    id="bulk-stock-notes"
+                                    v-model="bulkStockReference"
+                                    rows="2"
+                                    class="flex min-h-16 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                                    placeholder="Reference or remark"
+                                    maxlength="255"
+                                />
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex flex-row justify-end gap-2 border-t border-sidebar-border/70 bg-muted/30 px-6 py-4 dark:border-sidebar-border"
+                        >
+                            <Button
+                                type="button"
+                                variant="outline"
+                                @click="closeBulkStockModal"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                :disabled="bulkStockSubmitting"
+                                :class="
+                                    bulkStockType === 'in'
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-700'
+                                        : 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700'
+                                "
+                            >
+                                <Spinner
+                                    v-if="bulkStockSubmitting"
+                                    class="mr-2 size-4"
+                                />
+                                {{
+                                    bulkStockSubmitting
+                                        ? 'Applying...'
+                                        : bulkStockType === 'in'
+                                          ? 'Add Quantity'
+                                          : 'Remove Quantity'
+                                }}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             <!-- Stock In/Out Modal (movements saved in DB) -->
             <Dialog v-model:open="stockModalOpen">

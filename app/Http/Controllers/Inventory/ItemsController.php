@@ -253,10 +253,67 @@ class ItemsController extends Controller
         }
     }
 
-    public function destroy(string $item): \Illuminate\Http\RedirectResponse
+    public function destroy(Item $item): \Illuminate\Http\RedirectResponse
     {
-        // TODO: Add delete logic
+        $item->delete();
+
         return redirect()->route('inventory.items');
+    }
+
+    public function csv(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $ids = $request->has('ids')
+            ? array_filter(array_map('intval', (array) $request->ids))
+            : null;
+
+        $query = Item::query()
+            ->with(['category', 'pricing', 'inventory', 'taxDetail']);
+
+        if ($ids !== null && count($ids) > 0) {
+            $query->whereIn('id', $ids);
+        }
+
+        $items = $query->orderBy('name')->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="items.csv"',
+        ];
+
+        return response()->stream(function () use ($items) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, [
+                'Name', 'Code', 'Category', 'Unit', 'Quantity', 'Selling Price', 'Purchase Price', 'MRP', 'Brand', 'Item Type', 'Status',
+            ]);
+            foreach ($items as $item) {
+                fputcsv($out, [
+                    $item->name,
+                    $item->item_code ?? '',
+                    $item->category?->name ?? '',
+                    $item->inventory?->primary_unit ?? '',
+                    $item->inventory?->stock_quantity ?? '',
+                    $item->pricing?->sale_price ?? '',
+                    $item->pricing?->purchase_price ?? '',
+                    $item->pricing?->mrp ?? '',
+                    $item->brand ?? '',
+                    $item->item_type ?? '',
+                    $item->status ?? '',
+                ]);
+            }
+            fclose($out);
+        }, 200, $headers);
+    }
+
+    public function bulkDestroy(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:items,id'],
+        ]);
+
+        Item::query()->whereIn('id', $request->ids)->delete();
+
+        return redirect()->route('inventory.items')->with('success', 'Selected items deleted successfully.');
     }
 
     public function stockIn(StockMovementRequest $request, Item $item): \Illuminate\Http\RedirectResponse

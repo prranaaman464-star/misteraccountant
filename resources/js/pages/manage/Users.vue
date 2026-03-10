@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import {
+    ArrowDownToLine,
+    ChevronDown,
+    Trash2,
+    X,
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import ManageController from '@/actions/App/Http/Controllers/Manage/ManageController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -33,8 +40,8 @@ interface Member {
     joined_at: string;
 }
 
-defineProps<{
-    organization: { id: number; name: string };
+const props = defineProps<{
+    organization: { id: number; name: string; owner_id?: number };
     members: Member[];
     memberLimit: number | null;
     canAddMore: boolean;
@@ -47,8 +54,70 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const addMemberOpen = ref(false);
+const selectedMembers = ref<number[]>([]);
+const bulkActionsOpen = ref(false);
 const editMemberOpen = ref(false);
 const editMemberId = ref<number | null>(null);
+
+function toggleSelectAll(checked: boolean | 'indeterminate'): void {
+    if (checked === true) {
+        selectedMembers.value = props.members.map((m) => m.id);
+    } else {
+        selectedMembers.value = [];
+    }
+}
+
+function toggleSelectMember(id: number): void {
+    const idx = selectedMembers.value.indexOf(id);
+    if (idx === -1) {
+        selectedMembers.value.push(id);
+    } else {
+        selectedMembers.value.splice(idx, 1);
+    }
+}
+
+function clearSelection(): void {
+    selectedMembers.value = [];
+    bulkActionsOpen.value = false;
+}
+
+function downloadSelectedCsv(): void {
+    if (selectedMembers.value.length === 0) return;
+    const ids = selectedMembers.value.join(',');
+    window.location.href = `/manage/members/csv?ids=${ids}`;
+}
+
+function handleBulkRemove(): void {
+    if (selectedMembers.value.length === 0) return;
+    if (
+        !confirm(
+            `Are you sure you want to remove ${selectedMembers.value.length} member(s) from the organization?`,
+        )
+    ) {
+        return;
+    }
+    bulkActionsOpen.value = false;
+    router.post('/manage/members/bulk-remove', {
+        ids: selectedMembers.value,
+    });
+}
+
+const isAllSelected = computed(
+    () =>
+        selectedMembers.value.length === props.members.length &&
+        props.members.length > 0,
+);
+
+const isSomeSelected = computed(
+    () =>
+        selectedMembers.value.length > 0 &&
+        selectedMembers.value.length < props.members.length,
+);
+
+function isOwner(memberId: number): boolean {
+    return props.organization.owner_id === memberId;
+}
+
 const form = useForm({
     email: '',
     name: '',
@@ -265,6 +334,22 @@ function removeMember(member: Member) {
                             <tr
                                 class="border-b border-sidebar-border bg-muted/50"
                             >
+                                <th
+                                    v-if="canManageMembers"
+                                    class="h-12 w-12 px-4 text-left align-middle"
+                                    @click.stop
+                                >
+                                    <Checkbox
+                                        :model-value="
+                                            isAllSelected
+                                                ? true
+                                                : isSomeSelected
+                                                  ? 'indeterminate'
+                                                  : false
+                                        "
+                                        @update:model-value="toggleSelectAll"
+                                    />
+                                </th>
                                 <th class="p-3 text-left font-medium">Name</th>
                                 <th class="p-3 text-left font-medium">Email</th>
                                 <th class="p-3 text-left font-medium">Role</th>
@@ -285,6 +370,21 @@ function removeMember(member: Member) {
                                 :key="member.id"
                                 class="border-b border-sidebar-border last:border-0"
                             >
+                                <td
+                                    v-if="canManageMembers"
+                                    class="p-4 align-middle"
+                                    @click.stop
+                                >
+                                    <Checkbox
+                                        :model-value="
+                                            selectedMembers.includes(member.id)
+                                        "
+                                        :disabled="isOwner(member.id)"
+                                        @update:model-value="
+                                            () => toggleSelectMember(member.id)
+                                        "
+                                    />
+                                </td>
                                 <td class="p-3">{{ member.name }}</td>
                                 <td class="p-3">{{ member.email }}</td>
                                 <td class="p-3 capitalize">
@@ -337,7 +437,7 @@ function removeMember(member: Member) {
                             </tr>
                             <tr v-if="members.length === 0">
                                 <td
-                                    :colspan="canManageMembers ? 5 : 4"
+                                    :colspan="canManageMembers ? 6 : 4"
                                     class="p-6 text-center text-muted-foreground"
                                 >
                                     No members yet.
@@ -354,6 +454,81 @@ function removeMember(member: Member) {
                     Member limit reached. Upgrade your plan to add more members.
                 </p>
             </div>
+
+            <!-- Bulk actions bar (shown when members selected) - Teleport ensures visibility -->
+            <Teleport v-if="canManageMembers" to="body">
+                <Transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="translate-y-full opacity-0"
+                    enter-to-class="translate-y-0 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="translate-y-0 opacity-100"
+                    leave-to-class="translate-y-full opacity-0"
+                >
+                    <div
+                        v-if="selectedMembers.length > 0"
+                        class="fixed inset-x-0 bottom-0 z-50 flex items-center justify-between gap-4 border-t border-sidebar-border/70 bg-card px-6 py-4 shadow-lg dark:border-sidebar-border"
+                    >
+                    <span class="text-sm font-medium">
+                        {{ selectedMembers.length }}
+                        {{
+                            selectedMembers.length === 1
+                                ? 'member'
+                                : 'members'
+                        }}
+                        selected
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <Button
+                            variant="default"
+                            size="default"
+                            class="rounded-lg"
+                            @click="downloadSelectedCsv"
+                        >
+                            <ArrowDownToLine class="size-4" />
+                            Download CSV
+                        </Button>
+                        <DropdownMenu v-model:open="bulkActionsOpen">
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="default"
+                                    size="default"
+                                    class="rounded-lg"
+                                >
+                                    Bulk Actions
+                                    <ChevronDown class="ml-1 size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-56">
+                                <DropdownMenuItem
+                                    class="cursor-pointer"
+                                    @click="downloadSelectedCsv"
+                                >
+                                    <ArrowDownToLine class="mr-2 size-4" />
+                                    Download CSV
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    class="cursor-pointer text-destructive focus:text-destructive"
+                                    @click="handleBulkRemove"
+                                >
+                                    <Trash2 class="mr-2 size-4" />
+                                    Bulk Remove
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-8 rounded-lg"
+                            aria-label="Clear selection"
+                            @click="clearSelection"
+                        >
+                            <X class="size-4" />
+                        </Button>
+                    </div>
+                    </div>
+                </Transition>
+            </Teleport>
         </div>
     </AppLayout>
 </template>

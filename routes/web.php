@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\EmailController;
 use App\Http\Controllers\CurrentOrganizationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GetStarted\PlanController as GetStartedPlanController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\Inventory\AllTransactionsController;
 use App\Http\Controllers\Inventory\BatchExpiryReportController;
 use App\Http\Controllers\Inventory\ItemsController;
@@ -12,6 +13,21 @@ use App\Http\Controllers\Inventory\PartyTransactionsController;
 use App\Http\Controllers\Inventory\ProductWisePlController;
 use App\Http\Controllers\Inventory\StockValueReportController;
 use App\Http\Controllers\Inventory\WarehousesController;
+use App\Http\Controllers\Purchase\DebitNotesController;
+use App\Http\Controllers\Purchase\HireTheBestVendorsController;
+use App\Http\Controllers\Purchase\PayoutReceiptsController;
+use App\Http\Controllers\Purchase\PurchaseOrdersController;
+use App\Http\Controllers\Purchase\PurchasesAndExpensesController;
+use App\Http\Controllers\Purchase\VendorsAndSuppliersController;
+use App\Http\Controllers\Purchase\VendorsLeadsController;
+use App\Http\Controllers\Sale\ClientsAndProspectsController;
+use App\Http\Controllers\Sale\CreditNotesController;
+use App\Http\Controllers\Sale\DeliveryChallansController;
+use App\Http\Controllers\Sale\InvoicesController;
+use App\Http\Controllers\Sale\PaymentReceiptsController;
+use App\Http\Controllers\Sale\ProformaInvoicesController;
+use App\Http\Controllers\Sale\QuotationAndEstimatesController;
+use App\Http\Controllers\Sale\SalesOrdersController;
 use App\Http\Controllers\Manage\ManageController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\Onboarding\OrganizationController as OnboardingOrganizationController;
@@ -71,6 +87,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('manage')->name('manage.')->group(function () {
             Route::get('/', [ManageController::class, 'index'])->name('index');
             Route::get('users', [ManageController::class, 'users'])->name('users');
+            Route::get('members/csv', [ManageController::class, 'membersCsv'])->name('members.csv');
+            Route::post('members/bulk-remove', [ManageController::class, 'bulkRemoveMembers'])->name('members.bulk-remove');
             Route::post('members', [ManageController::class, 'storeMember'])->name('members.store');
             Route::put('members/{user}', [ManageController::class, 'updateMember'])->name('members.update');
             Route::delete('members/{user}', [ManageController::class, 'destroyMember'])->name('members.destroy');
@@ -88,6 +106,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
+Route::get('search', GlobalSearchController::class)
+    ->middleware(['auth', 'verified', RedirectIfNoOrganization::class])
+    ->name('search');
+
 Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix('inventory')->group(function () {
     Route::get('items', [ItemsController::class, 'index'])->name('inventory.items');
     Route::get('items/create', [ItemsController::class, 'create'])->name('inventory.items.create');
@@ -96,7 +118,9 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
     Route::get('items/{item}', [ItemsController::class, 'show'])->name('inventory.items.show');
     Route::get('items/{item}/edit', [ItemsController::class, 'edit'])->name('inventory.items.edit');
     Route::put('items/{item}', [ItemsController::class, 'update'])->name('inventory.items.update');
+    Route::get('items/csv', [ItemsController::class, 'csv'])->name('inventory.items.csv');
     Route::delete('items/{item}', [ItemsController::class, 'destroy'])->name('inventory.items.destroy');
+    Route::post('items/bulk-destroy', [ItemsController::class, 'bulkDestroy'])->name('inventory.items.bulk-destroy');
     Route::post('items/{item}/stock-in', [ItemsController::class, 'stockIn'])->name('inventory.items.stock-in');
     Route::post('items/{item}/stock-out', [ItemsController::class, 'stockOut'])->name('inventory.items.stock-out');
 
@@ -105,6 +129,7 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
 
     // product-wise-pl
     Route::get('product-wise-pl', [ProductWisePlController::class, 'index'])->name('inventory.product-wise-pl');
+    Route::get('product-wise-pl/csv', [ProductWisePlController::class, 'csv'])->name('inventory.product-wise-pl.csv');
 
     // stock-value-report
     Route::get('stock-value-report', [StockValueReportController::class, 'index'])->name('inventory.stock-value-report');
@@ -117,7 +142,32 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
 
     // all-transactions
     Route::get('all-transactions', [AllTransactionsController::class, 'index'])->name('inventory.all-transactions');
+});
 
+Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix('purchases')->name('purchases.')->group(function () {
+    Route::get('vendors-leads', [VendorsLeadsController::class, 'index'])->name('vendors-leads');
+    Route::get('vendors-and-suppliers', [VendorsAndSuppliersController::class, 'index'])->name('vendors-and-suppliers');
+    Route::get('purchases-and-expenses', [PurchasesAndExpensesController::class, 'index'])->name('purchases-and-expenses');
+    Route::get('purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders');
+    Route::get('payout-receipts', [PayoutReceiptsController::class, 'index'])->name('payout-receipts');
+    Route::get('debit-notes', [DebitNotesController::class, 'index'])->name('debit-notes');
+    Route::get('hire-the-best-vendors', [HireTheBestVendorsController::class, 'index'])->name('hire-the-best-vendors');
+});
+
+Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix('sales')->name('sales.')->group(function () {
+    Route::get('clients-and-prospects', [ClientsAndProspectsController::class, 'index'])->name('clients-and-prospects');
+    Route::get('clients-and-prospects/create', [ClientsAndProspectsController::class, 'create'])->name('clients-and-prospects.create');
+    Route::post('clients-and-prospects', [ClientsAndProspectsController::class, 'store'])->name('clients-and-prospects.store');
+    Route::get('quotation-and-estimates', [QuotationAndEstimatesController::class, 'index'])->name('quotation-and-estimates');
+    Route::get('proforma-invoices', [ProformaInvoicesController::class, 'index'])->name('proforma-invoices');
+    Route::get('invoices', [InvoicesController::class, 'index'])->name('invoices');
+    Route::get('invoices/create', [InvoicesController::class, 'create'])->name('invoices.create');
+    Route::get('invoices/templates', [InvoicesController::class, 'templates'])->name('invoices.templates');
+    Route::get('invoices/recurring', [InvoicesController::class, 'recurring'])->name('invoices.recurring');
+    Route::get('payment-receipts', [PaymentReceiptsController::class, 'index'])->name('payment-receipts');
+    Route::get('sales-orders', [SalesOrdersController::class, 'index'])->name('sales-orders');
+    Route::get('delivery-challans', [DeliveryChallansController::class, 'index'])->name('delivery-challans');
+    Route::get('credit-notes', [CreditNotesController::class, 'index'])->name('credit-notes');
 });
 
 require __DIR__.'/settings.php';

@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PlansAndModulesSeeder::class,
+            AccountManagerSeeder::class,
         ]);
 
         // User::factory(10)->create();

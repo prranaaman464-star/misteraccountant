@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AccountManager;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -70,6 +71,9 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'accountManager' => fn () => AccountManager::query()
+                ->where('is_active', true)
+                ->first(),
         ];
     }
 }

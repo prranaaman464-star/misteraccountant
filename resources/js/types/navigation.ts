@@ -11,6 +11,7 @@ export type NavSubItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     badge?: string;
     badgeIcon?: LucideIcon;
+    items?: NavSubItem[];
 };
 
 export type NavItem = {

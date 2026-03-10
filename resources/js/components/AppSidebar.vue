@@ -3,6 +3,8 @@ import { Link, router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import {
     Building2,
+    CreditCard,
+    FileText,
     Gem,
     LayoutGrid,
     Package,
@@ -10,21 +12,17 @@ import {
     ShoppingBag,
     ShoppingCart,
     Wallet,
-    FileText,
-    Plus,
-    CreditCard,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import inventory from '@/routes/inventory';
@@ -115,7 +113,28 @@ const manageNavItems: NavItem[] = [
                 href: '/sales/quotation-and-estimates',
             },
             { title: 'Proforma Invoices', href: '/sales/proforma-invoices' },
-            { title: 'Invoices', href: '/sales/invoices' },
+            {
+                title: 'Invoices',
+                href: '/sales/invoices',
+                items: [
+                    {
+                        title: 'Create Invoice',
+                        href: '/sales/invoices/create',
+                    },
+                    {
+                        title: 'Invoice Details',
+                        href: '/sales/invoices',
+                    },
+                    {
+                        title: 'Invoice Templates',
+                        href: '/sales/invoices/templates',
+                    },
+                    {
+                        title: 'Recurring Invoices',
+                        href: '/sales/invoices/recurring',
+                    },
+                ],
+            },
             { title: 'Payment Receipts', href: '/sales/payment-receipts' },
             { title: 'Sales Orders (New)', href: '/sales/sales-orders' },
             {
@@ -208,22 +227,15 @@ const administrationNavItems = computed<NavItem[]>(() => [
     },
 ]);
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Quick Start',
-        href: 'https://misteraccountant.com/',
-        icon: Plus,
-    },
-];
 </script>
 
 <template>
     <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
-            <SidebarMenu>
+        <SidebarHeader class="p-3">
+            <SidebarMenu class="gap-2">
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="dashboard()" class="rounded-xl">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -231,7 +243,7 @@ const footerNavItems: NavItem[] = [
                 <SidebarMenuItem v-if="organizations.length > 1">
                     <select
                         :value="currentOrganizationId ?? ''"
-                        class="h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+                        class="h-9 w-full rounded-lg border border-sidebar-border/80 bg-sidebar-accent/50 px-3 text-sm font-medium outline-none transition-colors focus:ring-2 focus:ring-sidebar-ring/50 hover:bg-sidebar-accent"
                         @change="switchOrganization"
                     >
                         <option
@@ -246,15 +258,17 @@ const footerNavItems: NavItem[] = [
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
-            <NavMain label="Manage" :items="manageNavItems" />
+        <SidebarContent class="gap-0 px-2">
+            <NavMain label="Navigation" :items="manageNavItems" />
+            <SidebarSeparator class="my-2" />
             <NavMain label="Administration" :items="administrationNavItems" />
         </SidebarContent>
 
-        <SidebarFooter>
+        <!--
+        <SidebarFooter class="border-t border-sidebar-border/50 p-3">
             <NavFooter :items="footerNavItems" />
-            <!-- <NavUser /> -->
         </SidebarFooter>
+        -->
     </Sidebar>
     <slot />
 </template>
