@@ -16,6 +16,10 @@ class PostAuthRedirectController extends Controller
     public function __invoke(): RedirectResponse
     {
         $user = auth()->user();
+
+        if ($user?->isSuperadmin()) {
+            return redirect()->route('superadmin.dashboard');
+        }
         $planId = session('selected_plan_id');
 
         if ($planId && $user) {

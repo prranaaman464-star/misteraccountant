@@ -43,7 +43,7 @@ class EnsureModuleAccess
             ], 404);
         }
 
-        if (! $user->belongsToOrganization($organization)) {
+        if (! $user->isSuperadmin() && ! $user->belongsToOrganization($organization)) {
             return response()->json([
                 'message' => 'You do not have access to this organization.',
                 'requires_upgrade' => false,
@@ -60,7 +60,7 @@ class EnsureModuleAccess
             ], 402);
         }
 
-        if (! $plan->hasModule($moduleSlug)) {
+        if (! $user->isSuperadmin() && ! $plan->hasModule($moduleSlug)) {
             return response()->json([
                 'message' => "The '{$moduleSlug}' module is not available in your current plan.",
                 'requires_upgrade' => true,

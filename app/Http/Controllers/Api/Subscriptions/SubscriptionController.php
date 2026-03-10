@@ -26,7 +26,8 @@ class SubscriptionController extends Controller
         $this->ensureOrganizationAccess($request, $organization);
 
         // Check if user is owner or admin
-        if (! $user->hasRoleInOrganization($organization, 'owner')
+        if (! $user->isSuperadmin()
+            && ! $user->hasRoleInOrganization($organization, 'owner')
             && ! $user->hasRoleInOrganization($organization, 'admin')) {
             return response()->json([
                 'message' => 'Only owners and admins can manage subscriptions.',
@@ -89,7 +90,8 @@ class SubscriptionController extends Controller
 
         $this->ensureOrganizationAccess($request, $organization);
 
-        if (! $user->hasRoleInOrganization($organization, 'owner')
+        if (! $user->isSuperadmin()
+            && ! $user->hasRoleInOrganization($organization, 'owner')
             && ! $user->hasRoleInOrganization($organization, 'admin')) {
             return response()->json([
                 'message' => 'Only owners and admins can cancel subscriptions.',

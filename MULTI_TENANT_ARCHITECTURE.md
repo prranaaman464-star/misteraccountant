@@ -72,7 +72,31 @@ Subscription -> belongsTo -> Plan
 - Takes module slug as parameter: `EnsureModuleAccess:client-management`
 - Returns 402 if module not available in plan
 
-### 4. Services
+#### BindCurrentOrganization (`app/Http/Middleware/BindCurrentOrganization.php`)
+- Binds current organization to container for global scopes
+- Resolves from: `session('current_organization_id')`, `X-Organization-Id` header, `organization_id` query, or route param
+- Superadmin can access any organization
+
+### 4. Global Scopes
+
+#### BelongsToOrganization Trait (`app/Models/Concerns/BelongsToOrganization.php`)
+Add to any model that has `organization_id` to automatically scope queries:
+
+```php
+use App\Models\Concerns\BelongsToOrganization;
+
+class Client extends Model
+{
+    use BelongsToOrganization, HasFactory, SoftDeletes;
+}
+```
+
+#### OrganizationScope (`app/Models/Scopes/OrganizationScope.php`)
+- Automatically adds `WHERE organization_id = ?` when `current.organization` is bound to the container
+- Only applies when middleware has bound the org (web session or API header/route)
+- Bypass with `Client::withoutGlobalScope(OrganizationScope::class)->get()`
+
+### 5. Services
 
 #### OrganizationPermissionService (`app/Services/OrganizationPermissionService.php`)
 - `userHasAccess()` - Check user belongs to organization
@@ -83,7 +107,7 @@ Subscription -> belongsTo -> Plan
 - `checkFeatureLimit()` - Check feature limit
 - `getRemainingFeatureLimit()` - Get remaining limit
 
-### 5. Traits
+### 6. Traits
 
 #### ChecksOrganizationPermissions (`app/Concerns/ChecksOrganizationPermissions.php`)
 Helper trait for controllers:
@@ -94,7 +118,7 @@ Helper trait for controllers:
 - `ensureCanAddMember()` - Ensure can add member
 - `ensureFeatureLimit()` - Ensure feature limit not exceeded
 
-### 6. Policies
+### 7. Policies
 
 #### OrganizationPolicy (`app/Policies/OrganizationPolicy.php`)
 - `view()` - User belongs to organization
@@ -308,19 +332,41 @@ $remaining = $service->getRemainingFeatureLimit($organization, 'clients_limit', 
 
 ## Data Isolation
 
+### Migration Template
+
 All tenant data tables must include `organization_id`:
+
 ```php
-Schema::create('clients', function (Blueprint $table) {
+Schema::create('projects', function (Blueprint $table) {
+    $table->id();
     $table->foreignId('organization_id')->constrained()->onDelete('cascade');
-    // ... other fields
+    $table->string('name');
+    $table->timestamps();
+    $table->index('organization_id');
 });
 ```
 
-Always scope queries by organization:
+### Scoping Options
+
+**Option 1: Global scope (recommended)** – Use `BelongsToOrganization` trait so queries auto-scope:
+
 ```php
-$clients = $organization->clients()->get();
-// or
-$clients = Client::where('organization_id', $organization->id)->get();
+class Project extends Model
+{
+    use BelongsToOrganization;
+}
+```
+
+**Option 2: Relationship** – Use the organization relationship:
+
+```php
+$projects = $organization->projects()->get();
+```
+
+**Option 3: Manual** – Explicit where clause:
+
+```php
+$projects = Project::where('organization_id', $organization->id)->get();
 ```
 
 ## Setup Instructions
@@ -375,6 +421,137 @@ $clients = Client::where('organization_id', $organization->id)->get();
 1. Add to `feature_limits` table via seeder
 2. Check limits using `OrganizationPermissionService`
 3. Use `ensureFeatureLimit()` in controllers
+
+## Full Working Example
+
+### 1. Migration
+
+```php
+// database/migrations/xxxx_create_projects_table.php
+Schema::create('projects', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('organization_id')->constrained()->onDelete('cascade');
+    $table->string('name');
+    $table->text('description')->nullable();
+    $table->timestamps();
+    $table->index('organization_id');
+});
+```
+
+### 2. Model
+
+```php
+// app/Models/Project.php
+namespace App\Models;
+
+use App\Models\Concerns\BelongsToOrganization;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Project extends Model
+{
+    use BelongsToOrganization;
+
+    protected $fillable = ['organization_id', 'name', 'description'];
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+}
+```
+
+### 3. Controller
+
+```php
+// app/Http/Controllers/Api/Projects/ProjectController.php
+namespace App\Http\Controllers\Api\Projects;
+
+use App\Concerns\ChecksOrganizationPermissions;
+use App\Http\Controllers\Controller;
+use App\Models\Organization;
+use App\Models\Project;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ProjectController extends Controller
+{
+    use ChecksOrganizationPermissions;
+
+    public function index(Request $request, Organization $organization): JsonResponse
+    {
+        $this->ensureOrganizationAccess($request, $organization);
+        $projects = $organization->projects()->latest()->paginate(15);
+        return response()->json(['projects' => $projects]);
+    }
+
+    public function store(Request $request, Organization $organization): JsonResponse
+    {
+        $this->ensureOrganizationAccess($request, $organization);
+        $validated = $request->validate(['name' => 'required|string', 'description' => 'nullable']);
+        $project = $organization->projects()->create($validated);
+        return response()->json(['project' => $project], 201);
+    }
+
+    public function show(Request $request, Organization $organization, Project $project): JsonResponse
+    {
+        $this->ensureOrganizationAccess($request, $organization);
+        return response()->json(['project' => $project]);
+    }
+
+    public function update(Request $request, Organization $organization, Project $project): JsonResponse
+    {
+        $this->ensureOrganizationAccess($request, $organization);
+        $project->update($request->validate(['name' => 'required|string', 'description' => 'nullable']));
+        return response()->json(['project' => $project]);
+    }
+
+    public function destroy(Request $request, Organization $organization, Project $project): JsonResponse
+    {
+        $this->ensureOrganizationAccess($request, $organization);
+        $project->delete();
+        return response()->json(['message' => 'Deleted']);
+    }
+}
+```
+
+### 4. Add Relationship to Organization
+
+```php
+// In app/Models/Organization.php
+public function projects(): HasMany
+{
+    return $this->hasMany(Project::class);
+}
+```
+
+### 5. Routes
+
+```php
+// routes/api.php
+Route::middleware(['auth:sanctum', SetCurrentOrganization::class])->group(function () {
+    Route::prefix('organizations/{organization}/projects')->group(function () {
+        Route::get('/', [ProjectController::class, 'index']);
+        Route::post('/', [ProjectController::class, 'store']);
+        Route::get('/{project}', [ProjectController::class, 'show']);
+        Route::put('/{project}', [ProjectController::class, 'update']);
+        Route::delete('/{project}', [ProjectController::class, 'destroy']);
+    });
+});
+```
+
+### 6. API Usage
+
+```bash
+# List projects (pass org via header or route)
+curl -H "Authorization: Bearer {token}" -H "X-Organization-Id: 1" \
+  https://app.test/api/organizations/1/projects
+
+# Create project
+curl -X POST -H "Authorization: Bearer {token}" -H "X-Organization-Id: 1" \
+  -H "Content-Type: application/json" -d '{"name":"My Project"}' \
+  https://app.test/api/organizations/1/projects
+```
 
 ## Testing
 

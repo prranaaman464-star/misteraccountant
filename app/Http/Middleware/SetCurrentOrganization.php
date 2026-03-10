@@ -28,11 +28,13 @@ class SetCurrentOrganization
             ?? $request->route('organization');
 
         if ($organizationId) {
-            $organization = Organization::find($organizationId);
+            $organization = $organizationId instanceof Organization
+                ? $organizationId
+                : Organization::find($organizationId);
 
-            if ($organization && $user->belongsToOrganization($organization)) {
-                // Set organization in request for easy access
+            if ($organization && ($user->isSuperadmin() || $user->belongsToOrganization($organization))) {
                 $request->merge(['current_organization' => $organization]);
+                app()->instance('current.organization', $organization);
             }
         }
 

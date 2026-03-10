@@ -7,6 +7,7 @@ import {
     Trash2,
     X,
 } from 'lucide-vue-next';
+import ManageController from '@/actions/App/Http/Controllers/Manage/ManageController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -55,6 +56,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 const addMemberOpen = ref(false);
 const selectedMembers = ref<number[]>([]);
 const bulkActionsOpen = ref(false);
+const editMemberOpen = ref(false);
+const editMemberId = ref<number | null>(null);
 
 function toggleSelectAll(checked: boolean | 'indeterminate'): void {
     if (checked === true) {
@@ -120,6 +123,7 @@ const form = useForm({
     name: '',
     role: 'staff',
 });
+const editForm = useForm({ role: 'staff' });
 
 const page = usePage();
 const flash = page.props.flash as
@@ -133,6 +137,31 @@ function submitAddMember() {
             form.reset();
             addMemberOpen.value = false;
         },
+    });
+}
+
+function openEditMember(member: Member) {
+    editMemberId.value = member.id;
+    editForm.setData('role', member.role);
+    editMemberOpen.value = true;
+}
+
+function submitEditMember() {
+    const id = editMemberId.value;
+    if (!id) return;
+    editForm.put(ManageController.updateMember.url({ user: id }), {
+        preserveScroll: true,
+        onSuccess: () => {
+            editMemberId.value = null;
+            editMemberOpen.value = false;
+        },
+    });
+}
+
+function removeMember(member: Member) {
+    if (!confirm(`Remove ${member.name} from the organization?`)) return;
+    router.delete(ManageController.destroyMember.url({ user: member.id }), {
+        preserveScroll: true,
     });
 }
 </script>
@@ -254,6 +283,49 @@ function submitAddMember() {
                             </form>
                         </DialogContent>
                     </Dialog>
+                    <Dialog v-model:open="editMemberOpen">
+                        <DialogContent class="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Edit member role</DialogTitle>
+                                <DialogDescription>
+                                    Change the role for this team member.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form
+                                @submit.prevent="submitEditMember"
+                                class="space-y-4"
+                            >
+                                <div class="grid gap-2">
+                                    <Label for="edit-member-role">Role</Label>
+                                    <select
+                                        id="edit-member-role"
+                                        v-model="editForm.role"
+                                        class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                                    >
+                                        <option value="admin">Admin</option>
+                                        <option value="staff">Staff</option>
+                                        <option value="client">Client</option>
+                                    </select>
+                                    <InputError :message="editForm.errors.role" />
+                                </div>
+                                <DialogFooter>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        @click="editMemberOpen = false"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        :disabled="editForm.processing"
+                                    >
+                                        Update role
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 <div class="rounded-lg border border-sidebar-border">
@@ -283,6 +355,12 @@ function submitAddMember() {
                                 <th class="p-3 text-left font-medium">Role</th>
                                 <th class="p-3 text-left font-medium">
                                     Status
+                                </th>
+                                <th
+                                    v-if="canManageMembers"
+                                    class="p-3 text-left font-medium"
+                                >
+                                    Actions
                                 </th>
                             </tr>
                         </thead>
@@ -326,6 +404,35 @@ function submitAddMember() {
                                                 : 'Inactive'
                                         }}
                                     </span>
+                                </td>
+                                <td v-if="canManageMembers" class="p-3">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger as-child>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                class="h-8"
+                                            >
+                                                Actions
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                                @click="openEditMember(member)"
+                                            >
+                                                Edit role
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                v-if="
+                                                    (page.props.auth as { user?: { id: number } })?.user?.id !== member.id
+                                                "
+                                                class="text-destructive"
+                                                @click="removeMember(member)"
+                                            >
+                                                Remove
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </td>
                             </tr>
                             <tr v-if="members.length === 0">

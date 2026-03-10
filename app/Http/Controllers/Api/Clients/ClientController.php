@@ -62,11 +62,6 @@ class ClientController extends Controller
         $this->ensureActiveSubscription($organization);
         $this->ensureModuleAccess($organization, 'client-management');
 
-        // Ensure client belongs to organization
-        if ($client->organization_id !== $organization->id) {
-            abort(404);
-        }
-
         return response()->json([
             'client' => $client,
         ]);
@@ -80,11 +75,6 @@ class ClientController extends Controller
         $this->ensureOrganizationAccess($request, $organization);
         $this->ensureActiveSubscription($organization);
         $this->ensureModuleAccess($organization, 'client-management');
-
-        // Ensure client belongs to organization
-        if ($client->organization_id !== $organization->id) {
-            abort(404);
-        }
 
         $client->update($request->validated());
 
@@ -102,11 +92,6 @@ class ClientController extends Controller
         $this->ensureOrganizationAccess($request, $organization);
         $this->ensureActiveSubscription($organization);
         $this->ensureModuleAccess($organization, 'client-management');
-
-        // Ensure client belongs to organization
-        if ($client->organization_id !== $organization->id) {
-            abort(404);
-        }
 
         $client->delete();
 

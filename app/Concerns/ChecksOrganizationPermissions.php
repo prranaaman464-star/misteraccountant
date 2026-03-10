@@ -31,7 +31,11 @@ trait ChecksOrganizationPermissions
     {
         $user = $request->user();
 
-        if (! $user || ! $user->belongsToOrganization($organization)) {
+        if (! $user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        if (! $user->isSuperadmin() && ! $user->belongsToOrganization($organization)) {
             abort(403, 'You do not have access to this organization.');
         }
     }
