@@ -41,7 +41,6 @@ import inventory from '@/routes/inventory';
 import {
     create,
     show,
-    edit,
     destroy,
     stockIn,
     stockOut,

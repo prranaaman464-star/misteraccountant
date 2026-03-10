@@ -75,10 +75,6 @@ function onSearchResultClick(url: string): void {
     router.visit(url);
 }
 
-function closeSearchDropdown(): void {
-    searchOpen.value = false;
-}
-
 const page = usePage();
 const accountManager = computed(() => {
     const am = (page.props.accountManager as { name: string; role?: string; intro?: string; email: string; phone: string; phone_2?: string; whatsapp?: string } | null) ?? null;
