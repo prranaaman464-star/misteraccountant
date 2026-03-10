@@ -437,7 +437,7 @@ function removeMember(member: Member) {
                             </tr>
                             <tr v-if="members.length === 0">
                                 <td
-                                    :colspan="canManageMembers ? 5 : 4"
+                                    :colspan="canManageMembers ? 6 : 4"
                                     class="p-6 text-center text-muted-foreground"
                                 >
                                     No members yet.

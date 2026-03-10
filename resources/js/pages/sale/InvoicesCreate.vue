@@ -8,7 +8,6 @@ import {
     ChevronUp,
     FileText,
     Plus,
-    Settings,
     Upload,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -115,12 +114,6 @@ const lineItems = ref<LineItem[]>([
         amount: 0,
     },
 ]);
-
-function formatDateForDisplay(dateStr: string | null): string {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 function addLineItem(): void {
     lineItems.value.push({

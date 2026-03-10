@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronDown, Copy, Eye, Upload, User } from 'lucide-vue-next';
+import { ArrowLeft, ChevronDown, Eye, Upload, User } from 'lucide-vue-next';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
 
-const props = withDefaults(
+withDefaults(
     defineProps<{
         currencies?: Record<string, string>;
         countries?: string[];
@@ -65,10 +65,6 @@ const shippingAddress = ref({
     city: '',
     pincode: '',
 });
-
-function copyFromBilling(): void {
-    shippingAddress.value = { ...billingAddress.value };
-}
 
 function triggerImageUpload(): void {
     imageInputRef.value?.click();

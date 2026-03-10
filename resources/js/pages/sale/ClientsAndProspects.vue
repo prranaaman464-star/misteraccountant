@@ -9,7 +9,6 @@ import {
     Filter,
     Plus,
     Search,
-    Settings,
     UserCircle,
     X,
 } from 'lucide-vue-next';

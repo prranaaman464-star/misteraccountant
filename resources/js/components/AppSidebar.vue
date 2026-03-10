@@ -3,6 +3,8 @@ import { Link, router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import {
     Building2,
+    CreditCard,
+    FileText,
     Gem,
     LayoutGrid,
     Package,
@@ -10,17 +12,12 @@ import {
     ShoppingBag,
     ShoppingCart,
     Wallet,
-    FileText,
-    Plus,
-    CreditCard,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -230,13 +227,6 @@ const administrationNavItems = computed<NavItem[]>(() => [
     },
 ]);
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Quick Start',
-        href: 'https://misteraccountant.com/',
-        icon: Plus,
-    },
-];
 </script>
 
 <template>
@@ -274,10 +264,11 @@ const footerNavItems: NavItem[] = [
             <NavMain label="Administration" :items="administrationNavItems" />
         </SidebarContent>
 
+        <!--
         <SidebarFooter class="border-t border-sidebar-border/50 p-3">
             <NavFooter :items="footerNavItems" />
-            <!-- <NavUser /> -->
         </SidebarFooter>
+        -->
     </Sidebar>
     <slot />
 </template>
