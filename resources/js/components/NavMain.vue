@@ -17,7 +17,7 @@ import {
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { type NavItem } from '@/types';
+import { type NavItem, type NavSubItem } from '@/types';
 
 withDefaults(
     defineProps<{
@@ -28,27 +28,30 @@ withDefaults(
 );
 
 const { isCurrentUrl } = useCurrentUrl();
+
+function hasActiveChild(sub: NavSubItem): boolean {
+    if (isCurrentUrl(sub.href)) return true;
+    return sub.items?.some(hasActiveChild) ?? false;
+}
+
+function hasActiveItem(items: NavSubItem[]): boolean {
+    return items.some(hasActiveChild);
+}
 </script>
 
 <template>
-    <SidebarGroup class="px-2 py-0">
-        <SidebarGroupLabel>{{ label }}</SidebarGroupLabel>
+    <SidebarGroup class="px-2 py-1">
+        <SidebarGroupLabel class="mb-1">{{ label }}</SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem v-for="item in items" :key="item.title">
                 <Collapsible
                     v-if="item.items?.length"
-                    :default-open="
-                        item.items?.some((sub) => isCurrentUrl(sub.href))
-                    "
+                    :default-open="hasActiveItem(item.items)"
                     class="group/collapsible"
                 >
                     <CollapsibleTrigger as-child>
                         <SidebarMenuButton
-                            :is-active="
-                                item.items?.some((sub) =>
-                                    isCurrentUrl(sub.href),
-                                )
-                            "
+                            :is-active="hasActiveItem(item.items)"
                             :tooltip="item.title"
                         >
                             <component :is="item.icon" />
@@ -59,12 +62,76 @@ const { isCurrentUrl } = useCurrentUrl();
                         </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                        <SidebarMenuSub>
+                        <SidebarMenuSub class="gap-1.5">
                             <SidebarMenuSubItem
                                 v-for="sub in item.items"
                                 :key="sub.title"
                             >
+                                <Collapsible
+                                    v-if="sub.items?.length"
+                                    :default-open="hasActiveChild(sub)"
+                                    class="group/nested"
+                                >
+                                    <CollapsibleTrigger as-child>
+                                        <SidebarMenuSubButton
+                                            :is-active="hasActiveChild(sub)"
+                                            class="w-full justify-between"
+                                        >
+                                            <span class="min-w-0 truncate">{{
+                                                sub.title
+                                            }}</span>
+                                            <ChevronDown
+                                                class="ml-auto size-3.5 shrink-0 transition-transform group-data-[state=open]/nested:rotate-180"
+                                            />
+                                        </SidebarMenuSubButton>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <SidebarMenuSub class="gap-1">
+                                            <SidebarMenuSubItem
+                                                v-for="nested in sub.items"
+                                                :key="nested.title"
+                                            >
+                                                <SidebarMenuSubButton
+                                                    as-child
+                                                    :is-active="
+                                                        isCurrentUrl(
+                                                            nested.href,
+                                                        )
+                                                    "
+                                                >
+                                                    <Link
+                                                        :href="nested.href"
+                                                        :title="nested.title"
+                                                        class="flex w-full min-w-0 items-center gap-2 overflow-hidden"
+                                                    >
+                                                        <span
+                                                            class="min-w-0 truncate"
+                                                        >
+                                                            {{
+                                                                nested.title
+                                                            }}
+                                                        </span>
+                                                        <span
+                                                            v-if="nested.badge"
+                                                            class="shrink-0 text-[10px] font-medium text-pink-600 dark:text-pink-400"
+                                                        >
+                                                            {{ nested.badge }}
+                                                        </span>
+                                                        <component
+                                                            v-else-if="
+                                                                nested.badgeIcon
+                                                            "
+                                                            :is="nested.badgeIcon"
+                                                            class="size-3.5 shrink-0 text-orange-500"
+                                                        />
+                                                    </Link>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        </SidebarMenuSub>
+                                    </CollapsibleContent>
+                                </Collapsible>
                                 <SidebarMenuSubButton
+                                    v-else
                                     as-child
                                     :is-active="isCurrentUrl(sub.href)"
                                 >

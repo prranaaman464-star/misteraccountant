@@ -12,6 +12,21 @@ use App\Http\Controllers\Inventory\PartyTransactionsController;
 use App\Http\Controllers\Inventory\ProductWisePlController;
 use App\Http\Controllers\Inventory\StockValueReportController;
 use App\Http\Controllers\Inventory\WarehousesController;
+use App\Http\Controllers\Purchase\DebitNotesController;
+use App\Http\Controllers\Purchase\HireTheBestVendorsController;
+use App\Http\Controllers\Purchase\PayoutReceiptsController;
+use App\Http\Controllers\Purchase\PurchaseOrdersController;
+use App\Http\Controllers\Purchase\PurchasesAndExpensesController;
+use App\Http\Controllers\Purchase\VendorsAndSuppliersController;
+use App\Http\Controllers\Purchase\VendorsLeadsController;
+use App\Http\Controllers\Sale\ClientsAndProspectsController;
+use App\Http\Controllers\Sale\CreditNotesController;
+use App\Http\Controllers\Sale\DeliveryChallansController;
+use App\Http\Controllers\Sale\InvoicesController;
+use App\Http\Controllers\Sale\PaymentReceiptsController;
+use App\Http\Controllers\Sale\ProformaInvoicesController;
+use App\Http\Controllers\Sale\QuotationAndEstimatesController;
+use App\Http\Controllers\Sale\SalesOrdersController;
 use App\Http\Controllers\Manage\ManageController;
 use App\Http\Controllers\Onboarding\OrganizationController;
 use App\Http\Controllers\Onboarding\PlanController;
@@ -105,7 +120,32 @@ Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix
 
     // all-transactions
     Route::get('all-transactions', [AllTransactionsController::class, 'index'])->name('inventory.all-transactions');
+});
 
+Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix('purchases')->name('purchases.')->group(function () {
+    Route::get('vendors-leads', [VendorsLeadsController::class, 'index'])->name('vendors-leads');
+    Route::get('vendors-and-suppliers', [VendorsAndSuppliersController::class, 'index'])->name('vendors-and-suppliers');
+    Route::get('purchases-and-expenses', [PurchasesAndExpensesController::class, 'index'])->name('purchases-and-expenses');
+    Route::get('purchase-orders', [PurchaseOrdersController::class, 'index'])->name('purchase-orders');
+    Route::get('payout-receipts', [PayoutReceiptsController::class, 'index'])->name('payout-receipts');
+    Route::get('debit-notes', [DebitNotesController::class, 'index'])->name('debit-notes');
+    Route::get('hire-the-best-vendors', [HireTheBestVendorsController::class, 'index'])->name('hire-the-best-vendors');
+});
+
+Route::middleware(['auth', 'verified', RedirectIfNoOrganization::class])->prefix('sales')->name('sales.')->group(function () {
+    Route::get('clients-and-prospects', [ClientsAndProspectsController::class, 'index'])->name('clients-and-prospects');
+    Route::get('clients-and-prospects/create', [ClientsAndProspectsController::class, 'create'])->name('clients-and-prospects.create');
+    Route::post('clients-and-prospects', [ClientsAndProspectsController::class, 'store'])->name('clients-and-prospects.store');
+    Route::get('quotation-and-estimates', [QuotationAndEstimatesController::class, 'index'])->name('quotation-and-estimates');
+    Route::get('proforma-invoices', [ProformaInvoicesController::class, 'index'])->name('proforma-invoices');
+    Route::get('invoices', [InvoicesController::class, 'index'])->name('invoices');
+    Route::get('invoices/create', [InvoicesController::class, 'create'])->name('invoices.create');
+    Route::get('invoices/templates', [InvoicesController::class, 'templates'])->name('invoices.templates');
+    Route::get('invoices/recurring', [InvoicesController::class, 'recurring'])->name('invoices.recurring');
+    Route::get('payment-receipts', [PaymentReceiptsController::class, 'index'])->name('payment-receipts');
+    Route::get('sales-orders', [SalesOrdersController::class, 'index'])->name('sales-orders');
+    Route::get('delivery-challans', [DeliveryChallansController::class, 'index'])->name('delivery-challans');
+    Route::get('credit-notes', [CreditNotesController::class, 'index'])->name('credit-notes');
 });
 
 require __DIR__.'/settings.php';
