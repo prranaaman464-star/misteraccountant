@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
 import {
     ArrowDownToLine,
     ChevronDown,
     Trash2,
     X,
 } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import ManageController from '@/actions/App/Http/Controllers/Manage/ManageController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';

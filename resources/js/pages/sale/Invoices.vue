@@ -22,8 +22,8 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { getInitials } from '@/composables/useInitials';
+import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
 type StatItem = {
