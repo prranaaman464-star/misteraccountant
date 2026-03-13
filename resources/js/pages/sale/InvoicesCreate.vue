@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     Banknote,
@@ -7,11 +7,13 @@ import {
     ChevronDown,
     ChevronUp,
     FileText,
+    Loader2,
     Plus,
     Upload,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
+import InvoicePreviewModal from '@/components/InvoicePreviewModal.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
@@ -24,11 +26,19 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useInvoiceTemplate } from '@/composables/useInvoiceTemplate';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
 type Client = { id: string; name: string };
-type Product = { id: string; name: string; item_type: string; rate: number; unit: string; tax_rate: number };
+type Product = {
+    id: string;
+    name: string;
+    item_type: string;
+    rate: number;
+    unit: string;
+    tax_rate: number;
+};
 type TeamMember = { id: string; name: string };
 type Signature = { id: string; name: string };
 
@@ -41,6 +51,7 @@ type LineItem = {
     discount: number;
     taxPercent: number;
     amount: number;
+    itemId?: string;
 };
 
 const props = withDefaults(
@@ -87,6 +98,7 @@ const itemType = ref<'product' | 'service'>('product');
 const selectedProductId = ref('');
 const roundOffTotal = ref(true);
 const additionalNotes = ref('');
+const termsAndConditions = ref('');
 const notesActive = ref(false);
 const termsActive = ref(false);
 const bankDetailsActive = ref(true);
@@ -95,6 +107,14 @@ const selectedSignatureId = ref('');
 const signatureName = ref('');
 const discountPercent = ref(0);
 const productDropdownOpen = ref(false);
+const processing = ref(false);
+const showPreview = ref(false);
+
+const page = usePage<{ errors?: Record<string, string> }>();
+const errors = computed(() => page.props.errors ?? {});
+
+// Use invoice template composable
+const { selectedTemplateId, templateName } = useInvoiceTemplate();
 
 function uniqueId(): string {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/x/g, () =>
@@ -143,6 +163,7 @@ function selectProduct(idx: number): void {
         item.rate = product.rate;
         item.unit = product.unit;
         item.taxPercent = product.tax_rate || 18;
+        item.itemId = product.id;
         updateItemAmount(idx);
     }
 }
@@ -159,23 +180,83 @@ function updateItemAmount(idx: number): void {
 function numberToWords(num: number): string {
     const intPart = Math.floor(num);
     const decPart = Math.round((num - intPart) * 100);
-    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const ones = [
+        '',
+        'One',
+        'Two',
+        'Three',
+        'Four',
+        'Five',
+        'Six',
+        'Seven',
+        'Eight',
+        'Nine',
+    ];
+    const tens = [
+        '',
+        '',
+        'Twenty',
+        'Thirty',
+        'Forty',
+        'Fifty',
+        'Sixty',
+        'Seventy',
+        'Eighty',
+        'Ninety',
+    ];
+    const teens = [
+        'Ten',
+        'Eleven',
+        'Twelve',
+        'Thirteen',
+        'Fourteen',
+        'Fifteen',
+        'Sixteen',
+        'Seventeen',
+        'Eighteen',
+        'Nineteen',
+    ];
 
     function toWords(n: number): string {
         if (n === 0) return '';
         if (n < 10) return ones[n];
         if (n < 20) return teens[n - 10];
-        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
-        if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' & ' + toWords(n % 100) : '');
-        if (n < 100000) return toWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + toWords(n % 1000) : '');
-        if (n < 10000000) return toWords(Math.floor(n / 100000)) + ' Lakh' + (n % 100000 ? ' ' + toWords(n % 100000) : '');
-        return toWords(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + toWords(n % 10000000) : '');
+        if (n < 100)
+            return (
+                tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '')
+            );
+        if (n < 1000)
+            return (
+                ones[Math.floor(n / 100)] +
+                ' Hundred' +
+                (n % 100 ? ' & ' + toWords(n % 100) : '')
+            );
+        if (n < 100000)
+            return (
+                toWords(Math.floor(n / 1000)) +
+                ' Thousand' +
+                (n % 1000 ? ' ' + toWords(n % 1000) : '')
+            );
+        if (n < 10000000)
+            return (
+                toWords(Math.floor(n / 100000)) +
+                ' Lakh' +
+                (n % 100000 ? ' ' + toWords(n % 100000) : '')
+            );
+        return (
+            toWords(Math.floor(n / 10000000)) +
+            ' Crore' +
+            (n % 10000000 ? ' ' + toWords(n % 10000000) : '')
+        );
     }
 
     const word = intPart === 0 ? 'Zero' : toWords(intPart);
-    const currencyName = currency.value === 'USD' ? 'Dollars' : currency.value === 'INR' ? 'Rupees' : 'Units';
+    const currencyName =
+        currency.value === 'USD'
+            ? 'Dollars'
+            : currency.value === 'INR'
+              ? 'Rupees'
+              : 'Units';
     return word + ' ' + currencyName + (decPart ? ` and ${decPart}/100` : '');
 }
 
@@ -197,11 +278,17 @@ const cgstAmount = computed(() => {
 
 const sgstAmount = computed(() => cgstAmount.value);
 
-const totalBeforeDiscount = computed(() => subtotalAmount.value + cgstAmount.value + sgstAmount.value);
+const totalBeforeDiscount = computed(
+    () => subtotalAmount.value + cgstAmount.value + sgstAmount.value,
+);
 
-const discountAmount = computed(() => (totalBeforeDiscount.value * discountPercent.value) / 100);
+const discountAmount = computed(
+    () => (totalBeforeDiscount.value * discountPercent.value) / 100,
+);
 
-const totalBeforeRound = computed(() => totalBeforeDiscount.value - discountAmount.value);
+const totalBeforeRound = computed(
+    () => totalBeforeDiscount.value - discountAmount.value,
+);
 
 const total = computed(() => {
     const t = totalBeforeRound.value;
@@ -209,7 +296,12 @@ const total = computed(() => {
 });
 
 const currencySymbol = computed(() => {
-    const map: Record<string, string> = { USD: '$', INR: '₹', EUR: '€', GBP: '£' };
+    const map: Record<string, string> = {
+        USD: '$',
+        INR: '₹',
+        EUR: '€',
+        GBP: '£',
+    };
     return map[currency.value] ?? currency.value;
 });
 
@@ -226,20 +318,120 @@ const selectedProductDisplay = computed(() => {
     const p = props.products.find((x) => x.id === selectedProductId.value);
     return p?.name ?? 'Select';
 });
+
+function buildPayload(
+    saveStatus: 'draft' | 'sent' = 'draft',
+): Record<string, unknown> {
+    const validLineItems = lineItems.value.filter((i) => i.productName.trim());
+    if (validLineItems.length === 0) {
+        validLineItems.push(lineItems.value[0]);
+    }
+
+    return {
+        invoice_number: invoiceNumber.value,
+        reference_number: referenceNumber.value || null,
+        invoice_date: invoiceDate.value,
+        due_date: dueDate.value || null,
+        status: status.value || saveStatus,
+        currency: currency.value,
+        enable_tax: enableTax.value,
+        billed_by: billedBy.value || null,
+        customer_id: customerId.value || null,
+        round_off_total: roundOffTotal.value,
+        discount_percent: discountPercent.value,
+        subtotal_amount: subtotalAmount.value,
+        cgst_amount: enableTax.value ? cgstAmount.value : 0,
+        sgst_amount: enableTax.value ? sgstAmount.value : 0,
+        discount_amount: discountAmount.value,
+        total_amount: total.value,
+        additional_notes: additionalNotes.value || null,
+        terms_and_conditions: termsAndConditions.value || null,
+        account_id: accountId.value || null,
+        selected_signature_id: selectedSignatureId.value || null,
+        signature_name: signatureName.value || null,
+        is_recurring: isRecurring.value,
+        recurring_frequency: isRecurring.value
+            ? recurringFrequency.value
+            : null,
+        recurring_interval: isRecurring.value ? recurringInterval.value : null,
+        line_items: validLineItems.map((i) => ({
+            product_name: i.productName,
+            quantity: i.quantity,
+            unit: i.unit,
+            rate: i.rate,
+            discount: i.discount,
+            tax_percent: i.taxPercent,
+            amount: i.amount,
+            item_id: i.itemId || null,
+        })),
+    };
+}
+
+function submitInvoice(saveStatus: 'draft' | 'sent' = 'draft'): void {
+    processing.value = true;
+    router.post('/sales/invoices', buildPayload(saveStatus) as any, {
+        preserveScroll: true,
+        onFinish: () => {
+            processing.value = false;
+        },
+    });
+}
+
+const previewData = computed(() => {
+    const selectedClient = props.clients.find((c) => c.id === customerId.value);
+    const selectedBiller = props.teamMembers.find(
+        (m) => m.id === billedBy.value,
+    );
+    const selectedSig = props.signatures.find(
+        (s) => s.id === selectedSignatureId.value,
+    );
+
+    return {
+        invoiceNumber: invoiceNumber.value,
+        referenceNumber: referenceNumber.value,
+        invoiceDate: invoiceDate.value,
+        dueDate: dueDate.value,
+        customerName: selectedClient?.name || '',
+        billedByName: selectedBiller?.name || '',
+        currency: currency.value,
+        lineItems: lineItems.value,
+        subtotalAmount: subtotalAmount.value,
+        cgstAmount: cgstAmount.value,
+        sgstAmount: sgstAmount.value,
+        discountAmount: discountAmount.value,
+        total: total.value,
+        totalInWords: numberToWords(total.value),
+        additionalNotes: additionalNotes.value,
+        termsAndConditions: termsAndConditions.value,
+        signatureName: signatureName.value || selectedSig?.name || '',
+        enableTax: enableTax.value,
+    };
+});
+
+function openPreview(): void {
+    showPreview.value = true;
+}
 </script>
 
 <template>
     <Head title="Create Invoice" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-8 overflow-x-auto bg-muted/30 p-6">
+        <div
+            class="flex h-full flex-1 flex-col gap-8 overflow-x-auto bg-muted/30 p-6"
+        >
             <!-- Page Header -->
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    <h1
+                        class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+                    >
                         Create Invoice
                     </h1>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Fill in the details below to create a new invoice for your customer
+                        Fill in the details below to create a new invoice for
+                        your customer
                     </p>
                 </div>
                 <div class="flex items-center gap-3">
@@ -250,10 +442,45 @@ const selectedProductDisplay = computed(() => {
                         <ArrowLeft class="size-4" />
                         Back
                     </Link>
-                    <Button variant="outline" size="default" class="rounded-lg shadow-sm">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="default"
+                        class="rounded-lg shadow-sm"
+                        :disabled="processing"
+                        @click="openPreview"
+                    >
+                        <Loader2
+                            v-if="processing"
+                            class="mr-2 size-4 animate-spin"
+                        />
+                        Preview
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="default"
+                        class="rounded-lg shadow-sm"
+                        :disabled="processing"
+                        @click="submitInvoice('draft')"
+                    >
+                        <Loader2
+                            v-if="processing"
+                            class="mr-2 size-4 animate-spin"
+                        />
                         Save as Draft
                     </Button>
-                    <Button size="default" class="rounded-lg shadow-md">
+                    <Button
+                        type="button"
+                        size="default"
+                        class="rounded-lg shadow-md"
+                        :disabled="processing"
+                        @click="submitInvoice('sent')"
+                    >
+                        <Loader2
+                            v-if="processing"
+                            class="mr-2 size-4 animate-spin"
+                        />
                         Save & Send
                     </Button>
                 </div>
@@ -261,430 +488,586 @@ const selectedProductDisplay = computed(() => {
 
             <!-- Top row: Only 2 cards (Invoice Details + Settings) - image layout -->
             <div class="grid gap-6 md:grid-cols-2">
-                        <Card class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm">
-                            <CardHeader class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4">
-                                <h2 class="text-base font-semibold text-foreground">Invoice Details</h2>
-                            </CardHeader>
-                            <CardContent class="space-y-4 p-6">
-                                <div class="grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <Label for="invoice_number" class="text-sm font-medium">Invoice Number</Label>
-                                    <Input
-                                        id="invoice_number"
-                                        v-model="invoiceNumber"
-                                        class="mt-2 rounded-lg"
-                                        placeholder="e.g. INV-001"
-                                    />
-                                </div>
-                                <div>
-                                    <Label for="reference_number" class="text-sm font-medium">Reference Number</Label>
-                                    <Input
-                                        id="reference_number"
-                                        v-model="referenceNumber"
-                                        class="mt-2 rounded-lg"
-                                        placeholder="Optional reference"
-                                    />
-                                </div>
-                                </div>
-                                <div>
-                                    <Label for="invoice_date" class="text-sm font-medium">Invoice Date</Label>
-                                    <div class="relative mt-2">
-                                        <Input
-                                            id="invoice_date"
-                                            v-model="invoiceDate"
-                                            type="date"
-                                            class="rounded-lg pr-10"
-                                        />
-                                        <Calendar
-                                            class="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                                            aria-hidden
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    v-if="!dueDate"
-                                    type="button"
-                                    class="flex items-center gap-2 rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
-                                    @click="dueDate = invoiceDate"
+                <Card
+                    class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm"
+                >
+                    <CardHeader
+                        class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4"
+                    >
+                        <h2 class="text-base font-semibold text-foreground">
+                            Invoice Details
+                        </h2>
+                    </CardHeader>
+                    <CardContent class="space-y-4 p-6">
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <Label
+                                    for="invoice_number"
+                                    class="text-sm font-medium"
+                                    >Invoice Number</Label
                                 >
-                                    <Plus class="size-4" />
-                                    Add Due Date
-                                </button>
-                                <div v-else>
-                                    <Label for="due_date" class="text-sm font-medium">Due Date</Label>
-                                    <Input
-                                        id="due_date"
-                                        v-model="dueDate"
-                                        type="date"
-                                        class="mt-2 rounded-lg"
-                                    />
-                                </div>
-                                <div class="flex items-center gap-3 rounded-lg border border-sidebar-border/50 bg-muted/30 px-4 py-3">
-                                    <Switch v-model:checked="isRecurring" />
-                                    <span class="text-sm font-medium">Recurring invoice</span>
-                                </div>
-                                <div v-if="isRecurring" class="flex gap-3">
-                                    <select
-                                        v-model="recurringFrequency"
-                                        class="h-10 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="weekly">Weekly</option>
-                                        <option value="monthly">Monthly</option>
-                                        <option value="quarterly">Quarterly</option>
-                                        <option value="yearly">Yearly</option>
-                                    </select>
-                                    <select
-                                        v-model="recurringInterval"
-                                        class="h-10 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="1">1 Month</option>
-                                        <option value="2">2 Months</option>
-                                        <option value="3">3 Months</option>
-                                    </select>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                <Input
+                                    id="invoice_number"
+                                    v-model="invoiceNumber"
+                                    class="mt-2 rounded-lg"
+                                    placeholder="e.g. INV-001"
+                                />
+                            </div>
+                            <div>
+                                <Label
+                                    for="reference_number"
+                                    class="text-sm font-medium"
+                                    >Reference Number</Label
+                                >
+                                <Input
+                                    id="reference_number"
+                                    v-model="referenceNumber"
+                                    class="mt-2 rounded-lg"
+                                    placeholder="Optional reference"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <Label
+                                for="invoice_date"
+                                class="text-sm font-medium"
+                                >Invoice Date</Label
+                            >
+                            <div class="relative mt-2">
+                                <Input
+                                    id="invoice_date"
+                                    v-model="invoiceDate"
+                                    type="date"
+                                    class="rounded-lg pr-10"
+                                />
+                                <Calendar
+                                    class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
+                                    aria-hidden
+                                />
+                            </div>
+                        </div>
+                        <button
+                            v-if="!dueDate"
+                            type="button"
+                            class="flex items-center gap-2 rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+                            @click="dueDate = invoiceDate"
+                        >
+                            <Plus class="size-4" />
+                            Add Due Date
+                        </button>
+                        <div v-else>
+                            <Label for="due_date" class="text-sm font-medium"
+                                >Due Date</Label
+                            >
+                            <Input
+                                id="due_date"
+                                v-model="dueDate"
+                                type="date"
+                                class="mt-2 rounded-lg"
+                            />
+                        </div>
+                        <div
+                            class="flex items-center gap-3 rounded-lg border border-sidebar-border/50 bg-muted/30 px-4 py-3"
+                        >
+                            <Switch v-model:checked="isRecurring" />
+                            <span class="text-sm font-medium"
+                                >Recurring invoice</span
+                            >
+                        </div>
+                        <div v-if="isRecurring" class="flex gap-3">
+                            <select
+                                v-model="recurringFrequency"
+                                class="h-10 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:ring-2 focus:ring-ring focus:outline-none"
+                            >
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="quarterly">Quarterly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                            <select
+                                v-model="recurringInterval"
+                                class="h-10 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:ring-2 focus:ring-ring focus:outline-none"
+                            >
+                                <option value="1">1 Month</option>
+                                <option value="2">2 Months</option>
+                                <option value="3">3 Months</option>
+                            </select>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                        <Card class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm">
-                            <CardHeader class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4">
-                                <h2 class="text-base font-semibold text-foreground">Settings</h2>
-                            </CardHeader>
-                            <CardContent class="flex flex-col gap-5 p-6">
-                                <div
-                                    class="flex items-center justify-between rounded-xl border border-sidebar-border/60 bg-gradient-to-br from-muted/40 to-muted/20 px-5 py-4"
+                <Card
+                    class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm"
+                >
+                    <CardHeader
+                        class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4"
+                    >
+                        <h2 class="text-base font-semibold text-foreground">
+                            Settings
+                        </h2>
+                    </CardHeader>
+                    <CardContent class="flex flex-col gap-5 p-6">
+                        <div
+                            class="flex items-center justify-between rounded-xl border border-sidebar-border/60 bg-gradient-to-br from-muted/40 to-muted/20 px-5 py-4"
+                        >
+                            <AppLogo />
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <Label class="text-sm font-medium"
+                                    >Invoice Template</Label
                                 >
-                                    <AppLogo />
-                                </div>
-                                <div>
-                                    <Label for="status" class="text-sm font-medium">Status</Label>
-                                    <select
-                                        id="status"
-                                        v-model="status"
-                                        class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="">Select Status</option>
-                                        <option
-                                            v-for="(label, val) in statuses"
-                                            :key="val"
-                                            :value="val"
-                                        >
-                                            {{ label }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <Label for="currency" class="text-sm font-medium">Currency</Label>
-                                    <select
-                                        id="currency"
-                                        v-model="currency"
-                                        class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option
-                                            v-for="(label, code) in currencies"
-                                            :key="code"
-                                            :value="code"
-                                        >
-                                            {{ label }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="flex items-center justify-between rounded-lg border border-sidebar-border/50 bg-muted/30 px-4 py-3">
-                                    <Label for="enable_tax" class="text-sm font-medium">Enable Tax</Label>
-                                    <div class="flex items-center gap-2">
-                                        <Switch id="enable_tax" v-model:checked="enableTax" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                <Link
+                                    href="/sales/invoices/templates"
+                                    class="text-xs text-primary hover:underline"
+                                >
+                                    Change
+                                </Link>
+                            </div>
+                            <div
+                                class="mt-2 rounded-lg border border-input bg-muted/30 px-3 py-2 text-sm"
+                            >
+                                {{ templateName }}
+                            </div>
+                        </div>
+                        <div>
+                            <Label for="status" class="text-sm font-medium"
+                                >Status</Label
+                            >
+                            <select
+                                id="status"
+                                v-model="status"
+                                class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:ring-2 focus:ring-ring focus:outline-none"
+                            >
+                                <option value="">Select Status</option>
+                                <option
+                                    v-for="(label, val) in statuses"
+                                    :key="val"
+                                    :value="val"
+                                >
+                                    {{ label }}
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <Label for="currency" class="text-sm font-medium"
+                                >Currency</Label
+                            >
+                            <select
+                                id="currency"
+                                v-model="currency"
+                                class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:ring-2 focus:ring-ring focus:outline-none"
+                            >
+                                <option
+                                    v-for="(label, code) in currencies"
+                                    :key="code"
+                                    :value="code"
+                                >
+                                    {{ label }}
+                                </option>
+                            </select>
+                        </div>
+                        <div
+                            class="flex items-center justify-between rounded-lg border border-sidebar-border/50 bg-muted/30 px-4 py-3"
+                        >
+                            <Label for="enable_tax" class="text-sm font-medium"
+                                >Enable Tax</Label
+                            >
+                            <div class="flex items-center gap-2">
+                                <Switch
+                                    id="enable_tax"
+                                    v-model:checked="enableTax"
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             <!-- Second row: Bill From + Bill To -->
             <div class="grid gap-6 md:grid-cols-2">
-                        <Card class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm">
-                            <CardHeader class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4">
-                                <h2 class="text-base font-semibold text-foreground">Bill From</h2>
-                                <p class="mt-0.5 text-xs text-muted-foreground">Your organization details</p>
-                            </CardHeader>
-                            <CardContent class="p-6">
-                                <div>
-                                    <Label class="text-sm font-medium">Billed By</Label>
-                                    <select
-                                        v-model="billedBy"
-                                        class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="">Select team member</option>
-                                        <option
-                                            v-for="m in teamMembers"
-                                            :key="m.id"
-                                            :value="m.id"
-                                        >
-                                            {{ m.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm">
-                            <CardHeader class="flex flex-row items-center justify-between border-b border-sidebar-border/50 bg-muted/20 px-6 py-4">
-                                <div>
-                                    <h2 class="text-base font-semibold text-foreground">Bill To</h2>
-                                    <p class="mt-0.5 text-xs text-muted-foreground">Customer billing details</p>
-                                </div>
-                                <Link
-                                    href="/sales/clients-and-prospects/create"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                <Card
+                    class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm"
+                >
+                    <CardHeader
+                        class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4"
+                    >
+                        <h2 class="text-base font-semibold text-foreground">
+                            Bill From
+                        </h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            Your organization details
+                        </p>
+                    </CardHeader>
+                    <CardContent class="p-6">
+                        <div>
+                            <Label class="text-sm font-medium">Billed By</Label>
+                            <select
+                                v-model="billedBy"
+                                class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:ring-2 focus:ring-ring focus:outline-none"
+                            >
+                                <option value="">Select team member</option>
+                                <option
+                                    v-for="m in teamMembers"
+                                    :key="m.id"
+                                    :value="m.id"
                                 >
-                                    <Plus class="size-4" />
-                                    Add New
-                                </Link>
-                            </CardHeader>
-                            <CardContent class="p-6">
-                                <div>
-                                    <Label class="text-sm font-medium">Customer</Label>
-                                    <select
-                                        v-model="customerId"
-                                        class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <option value="">Select customer</option>
-                                        <option
-                                            v-for="c in clients"
-                                            :key="c.id"
-                                            :value="c.id"
-                                        >
-                                            {{ c.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                    {{ m.name }}
+                                </option>
+                            </select>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card
+                    class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm"
+                >
+                    <CardHeader
+                        class="flex flex-row items-center justify-between border-b border-sidebar-border/50 bg-muted/20 px-6 py-4"
+                    >
+                        <div>
+                            <h2 class="text-base font-semibold text-foreground">
+                                Bill To
+                            </h2>
+                            <p class="mt-0.5 text-xs text-muted-foreground">
+                                Customer billing details
+                            </p>
+                        </div>
+                        <Link
+                            href="/sales/clients-and-prospects/create"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                        >
+                            <Plus class="size-4" />
+                            Add New
+                        </Link>
+                    </CardHeader>
+                    <CardContent class="p-6">
+                        <div>
+                            <Label class="text-sm font-medium">Customer</Label>
+                            <select
+                                v-model="customerId"
+                                class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus:ring-2 focus:ring-ring focus:outline-none"
+                            >
+                                <option value="">Select customer</option>
+                                <option
+                                    v-for="c in clients"
+                                    :key="c.id"
+                                    :value="c.id"
+                                >
+                                    {{ c.name }}
+                                </option>
+                            </select>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             <!-- Items & Details - full width -->
-            <Card class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm">
-                <CardHeader class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4">
-                    <h2 class="text-base font-semibold text-foreground">Items & Details</h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">Add products or services to your invoice</p>
+            <Card
+                class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm"
+            >
+                <CardHeader
+                    class="border-b border-sidebar-border/50 bg-muted/20 px-6 py-4"
+                >
+                    <h2 class="text-base font-semibold text-foreground">
+                        Items & Details
+                    </h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Add products or services to your invoice
+                    </p>
                 </CardHeader>
                 <CardContent class="space-y-5 p-6">
-                            <div class="flex flex-wrap items-center gap-6">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="flex cursor-pointer items-center gap-2 rounded-lg border border-input px-4 py-2 transition-colors"
-                                        :class="itemType === 'product' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'"
-                                        @click="itemType = 'product'"
-                                    >
-                                        <input
-                                            id="item_product"
-                                            v-model="itemType"
-                                            type="radio"
-                                            value="product"
-                                            class="size-4 accent-primary"
-                                        />
-                                        <Label for="item_product" class="cursor-pointer text-sm font-medium">Product</Label>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="flex cursor-pointer items-center gap-2 rounded-lg border border-input px-4 py-2 transition-colors"
-                                        :class="itemType === 'service' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'"
-                                        @click="itemType = 'service'"
-                                    >
-                                        <input
-                                            id="item_service"
-                                            v-model="itemType"
-                                            type="radio"
-                                            value="service"
-                                            class="size-4 accent-primary"
-                                        />
-                                        <Label for="item_service" class="cursor-pointer text-sm font-medium">Service</Label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <Label class="text-sm font-medium">Products/Services</Label>
-                                <DropdownMenu v-model:open="productDropdownOpen">
-                                    <DropdownMenuTrigger as-child>
-                                        <button
-                                            type="button"
-                                            class="mt-2 flex h-10 w-full max-w-sm items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-left text-sm shadow-sm transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring"
-                                        >
-                                            <span :class="selectedProductId ? 'text-foreground' : 'text-muted-foreground'">
-                                                {{ selectedProductDisplay }}
-                                            </span>
-                                            <ChevronUp
-                                                v-if="productDropdownOpen"
-                                                class="size-4 shrink-0 text-muted-foreground"
-                                            />
-                                            <ChevronDown
-                                                v-else
-                                                class="size-4 shrink-0 text-muted-foreground"
-                                            />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start" class="max-h-60 min-w-[16rem]">
-                                        <DropdownMenuItem
-                                            class="text-muted-foreground"
-                                            @select="selectedProductId = ''"
-                                        >
-                                            Select
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            v-for="p in filteredProducts"
-                                            :key="p.id"
-                                            :class="{ 'bg-accent': selectedProductId === p.id }"
-                                            @select="
-                                                () => {
-                                                    selectedProductId = p.id;
-                                                    const idx = lineItems.findIndex((i) => !i.productName);
-                                                    selectProduct(idx >= 0 ? idx : lineItems.length - 1);
-                                                }
-                                            "
-                                        >
-                                            {{ p.name }}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            class="text-primary focus:bg-primary/10 focus:text-primary"
-                                            @select="router.visit('/inventory/items/create')"
-                                        >
-                                            <Plus class="size-4" />
-                                            Add New
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                            <div class="overflow-x-auto rounded-xl border border-sidebar-border/70">
-                                <table class="w-full text-sm">
-                                    <thead>
-                                        <tr class="border-b border-sidebar-border/70 bg-muted/60">
-                                            <th class="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Product/Service
-                                            </th>
-                                            <th class="w-24 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Qty
-                                            </th>
-                                            <th class="w-24 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Unit
-                                            </th>
-                                            <th class="w-28 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Rate
-                                            </th>
-                                            <th class="w-24 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Discount
-                                            </th>
-                                            <th class="w-20 px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Tax %
-                                            </th>
-                                            <th class="w-28 px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                                Amount
-                                            </th>
-                                            <th class="w-12 px-2 py-3.5" />
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr
-                                            v-for="(item, idx) in lineItems"
-                                            :key="item.id"
-                                            class="border-b border-sidebar-border/50 transition-colors hover:bg-muted/30"
-                                        >
-                                            <td class="px-4 py-2">
-                                                <Input
-                                                    v-model="item.productName"
-                                                    class="h-9 rounded-md border-0 bg-transparent shadow-none focus-visible:ring-0"
-                                                    placeholder="Product or service"
-                                                />
-                                            </td>
-                                            <td class="px-4 py-2">
-                                                <Input
-                                                    v-model.number="item.quantity"
-                                                    type="number"
-                                                    min="0"
-                                                    class="h-9 rounded-md text-center"
-                                                    @input="updateItemAmount(idx)"
-                                                />
-                                            </td>
-                                            <td class="px-4 py-2">
-                                                <Input
-                                                    v-model="item.unit"
-                                                    class="h-9 rounded-md"
-                                                    placeholder="Pcs"
-                                                />
-                                            </td>
-                                            <td class="px-4 py-2">
-                                                <Input
-                                                    v-model.number="item.rate"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    class="h-9 rounded-md text-right tabular-nums"
-                                                    @input="updateItemAmount(idx)"
-                                                />
-                                            </td>
-                                            <td class="px-4 py-2">
-                                                <div class="flex items-center gap-1">
-                                                    <Input
-                                                        v-model.number="item.discount"
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        class="h-9 w-16 rounded-md text-right tabular-nums"
-                                                        @input="updateItemAmount(idx)"
-                                                    />
-                                                    <span class="text-xs text-muted-foreground">%</span>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-2">
-                                                <Input
-                                                    v-model.number="item.taxPercent"
-                                                    type="number"
-                                                    min="0"
-                                                    max="100"
-                                                    class="h-9 w-16 rounded-md text-right tabular-nums"
-                                                    @input="updateItemAmount(idx)"
-                                                />
-                                            </td>
-                                            <td class="px-4 py-2.5 text-right font-medium tabular-nums">
-                                                {{ currencySymbol }}{{ item.amount.toFixed(2) }}
-                                            </td>
-                                            <td class="px-2 py-2.5">
-                                                <Button
-                                                    v-if="lineItems.length > 1"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    class="size-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                                    @click="removeLineItem(item.id)"
-                                                >
-                                                    ×
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                class="w-full rounded-lg border-dashed py-6"
-                                @click="addLineItem"
+                    <div class="flex flex-wrap items-center gap-6">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="flex cursor-pointer items-center gap-2 rounded-lg border border-input px-4 py-2 transition-colors"
+                                :class="
+                                    itemType === 'product'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'hover:bg-muted/50'
+                                "
+                                @click="itemType = 'product'"
                             >
-                                <Plus class="mr-2 size-4" />
-                                Add line item
-                            </Button>
-                        </CardContent>
-                    </Card>
+                                <input
+                                    id="item_product"
+                                    v-model="itemType"
+                                    type="radio"
+                                    value="product"
+                                    class="size-4 accent-primary"
+                                />
+                                <Label
+                                    for="item_product"
+                                    class="cursor-pointer text-sm font-medium"
+                                    >Product</Label
+                                >
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="flex cursor-pointer items-center gap-2 rounded-lg border border-input px-4 py-2 transition-colors"
+                                :class="
+                                    itemType === 'service'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'hover:bg-muted/50'
+                                "
+                                @click="itemType = 'service'"
+                            >
+                                <input
+                                    id="item_service"
+                                    v-model="itemType"
+                                    type="radio"
+                                    value="service"
+                                    class="size-4 accent-primary"
+                                />
+                                <Label
+                                    for="item_service"
+                                    class="cursor-pointer text-sm font-medium"
+                                    >Service</Label
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <Label class="text-sm font-medium"
+                            >Products/Services</Label
+                        >
+                        <DropdownMenu v-model:open="productDropdownOpen">
+                            <DropdownMenuTrigger as-child>
+                                <button
+                                    type="button"
+                                    class="mt-2 flex h-10 w-full max-w-sm items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-left text-sm shadow-sm transition-colors hover:bg-muted/50 focus:ring-2 focus:ring-ring focus:outline-none"
+                                >
+                                    <span
+                                        :class="
+                                            selectedProductId
+                                                ? 'text-foreground'
+                                                : 'text-muted-foreground'
+                                        "
+                                    >
+                                        {{ selectedProductDisplay }}
+                                    </span>
+                                    <ChevronUp
+                                        v-if="productDropdownOpen"
+                                        class="size-4 shrink-0 text-muted-foreground"
+                                    />
+                                    <ChevronDown
+                                        v-else
+                                        class="size-4 shrink-0 text-muted-foreground"
+                                    />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="start"
+                                class="max-h-60 min-w-[16rem]"
+                            >
+                                <DropdownMenuItem
+                                    class="text-muted-foreground"
+                                    @select="selectedProductId = ''"
+                                >
+                                    Select
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    v-for="p in filteredProducts"
+                                    :key="p.id"
+                                    :class="{
+                                        'bg-accent': selectedProductId === p.id,
+                                    }"
+                                    @select="
+                                        () => {
+                                            selectedProductId = p.id;
+                                            const idx = lineItems.findIndex(
+                                                (i) => !i.productName,
+                                            );
+                                            selectProduct(
+                                                idx >= 0
+                                                    ? idx
+                                                    : lineItems.length - 1,
+                                            );
+                                        }
+                                    "
+                                >
+                                    {{ p.name }}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    class="text-primary focus:bg-primary/10 focus:text-primary"
+                                    @select="
+                                        router.visit('/inventory/items/create')
+                                    "
+                                >
+                                    <Plus class="size-4" />
+                                    Add New
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <div
+                        class="overflow-x-auto rounded-xl border border-sidebar-border/70"
+                    >
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr
+                                    class="border-b border-sidebar-border/70 bg-muted/60"
+                                >
+                                    <th
+                                        class="px-4 py-3.5 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                    >
+                                        Product/Service
+                                    </th>
+                                    <th
+                                        class="w-24 px-4 py-3.5 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                    >
+                                        Qty
+                                    </th>
+                                    <th
+                                        class="w-24 px-4 py-3.5 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                    >
+                                        Unit
+                                    </th>
+                                    <th
+                                        class="w-28 px-4 py-3.5 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                    >
+                                        Rate
+                                    </th>
+                                    <th
+                                        class="w-24 px-4 py-3.5 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                    >
+                                        Discount
+                                    </th>
+                                    <th
+                                        class="w-20 px-4 py-3.5 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                    >
+                                        Tax %
+                                    </th>
+                                    <th
+                                        class="w-28 px-4 py-3.5 text-right text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                    >
+                                        Amount
+                                    </th>
+                                    <th class="w-12 px-2 py-3.5" />
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="(item, idx) in lineItems"
+                                    :key="item.id"
+                                    class="border-b border-sidebar-border/50 transition-colors hover:bg-muted/30"
+                                >
+                                    <td class="px-4 py-2">
+                                        <Input
+                                            v-model="item.productName"
+                                            class="h-9 rounded-md border-0 bg-transparent shadow-none focus-visible:ring-0"
+                                            placeholder="Product or service"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <Input
+                                            v-model.number="item.quantity"
+                                            type="number"
+                                            min="0"
+                                            class="h-9 rounded-md text-center"
+                                            @input="updateItemAmount(idx)"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <Input
+                                            v-model="item.unit"
+                                            class="h-9 rounded-md"
+                                            placeholder="Pcs"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <Input
+                                            v-model.number="item.rate"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            class="h-9 rounded-md text-right tabular-nums"
+                                            @input="updateItemAmount(idx)"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="flex items-center gap-1">
+                                            <Input
+                                                v-model.number="item.discount"
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                class="h-9 w-16 rounded-md text-right tabular-nums"
+                                                @input="updateItemAmount(idx)"
+                                            />
+                                            <span
+                                                class="text-xs text-muted-foreground"
+                                                >%</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <Input
+                                            v-model.number="item.taxPercent"
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            class="h-9 w-16 rounded-md text-right tabular-nums"
+                                            @input="updateItemAmount(idx)"
+                                        />
+                                    </td>
+                                    <td
+                                        class="px-4 py-2.5 text-right font-medium tabular-nums"
+                                    >
+                                        {{ currencySymbol
+                                        }}{{ item.amount.toFixed(2) }}
+                                    </td>
+                                    <td class="px-2 py-2.5">
+                                        <Button
+                                            v-if="lineItems.length > 1"
+                                            variant="ghost"
+                                            size="icon"
+                                            class="size-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                            @click="removeLineItem(item.id)"
+                                        >
+                                            ×
+                                        </Button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="w-full rounded-lg border-dashed py-6"
+                        @click="addLineItem"
+                    >
+                        <Plus class="mr-2 size-4" />
+                        Add line item
+                    </Button>
+                </CardContent>
+            </Card>
 
             <!-- Extra Information + Summary - 2 columns side by side -->
             <div class="grid gap-6 lg:grid-cols-2">
                 <!-- Left: Extra Information -->
-                <Card class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm">
+                <Card
+                    class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm"
+                >
                     <CardContent class="p-6">
-                        <h2 class="text-base font-semibold text-foreground">Extra Information</h2>
+                        <h2 class="text-base font-semibold text-foreground">
+                            Extra Information
+                        </h2>
                         <div class="mt-4 flex flex-wrap gap-2">
                             <button
                                 type="button"
                                 class="rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors"
-                                :class="notesActive ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-background text-muted-foreground hover:bg-muted/50'"
-                                @click="(notesActive = true), (termsActive = false), (bankDetailsActive = false)"
+                                :class="
+                                    notesActive
+                                        ? 'border-primary bg-primary text-primary-foreground'
+                                        : 'border-input bg-background text-muted-foreground hover:bg-muted/50'
+                                "
+                                @click="
+                                    ((notesActive = true),
+                                    (termsActive = false),
+                                    (bankDetailsActive = false))
+                                "
                             >
                                 <FileText class="mr-2 inline-block size-4" />
                                 Add Notes
@@ -692,8 +1075,16 @@ const selectedProductDisplay = computed(() => {
                             <button
                                 type="button"
                                 class="rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors"
-                                :class="termsActive ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-background text-muted-foreground hover:bg-muted/50'"
-                                @click="(termsActive = true), (notesActive = false), (bankDetailsActive = false)"
+                                :class="
+                                    termsActive
+                                        ? 'border-primary bg-primary text-primary-foreground'
+                                        : 'border-input bg-background text-muted-foreground hover:bg-muted/50'
+                                "
+                                @click="
+                                    ((termsActive = true),
+                                    (notesActive = false),
+                                    (bankDetailsActive = false))
+                                "
                             >
                                 <FileText class="mr-2 inline-block size-4" />
                                 Add Terms & Conditions
@@ -701,15 +1092,25 @@ const selectedProductDisplay = computed(() => {
                             <button
                                 type="button"
                                 class="rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors"
-                                :class="bankDetailsActive ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-background text-muted-foreground hover:bg-muted/50'"
-                                @click="(bankDetailsActive = true), (notesActive = false), (termsActive = false)"
+                                :class="
+                                    bankDetailsActive
+                                        ? 'border-primary bg-primary text-primary-foreground'
+                                        : 'border-input bg-background text-muted-foreground hover:bg-muted/50'
+                                "
+                                @click="
+                                    ((bankDetailsActive = true),
+                                    (notesActive = false),
+                                    (termsActive = false))
+                                "
                             >
                                 <Banknote class="mr-2 inline-block size-4" />
                                 Bank Details
                             </button>
                         </div>
                         <div v-if="notesActive" class="mt-4">
-                            <Label class="text-sm font-medium">Additional Notes</Label>
+                            <Label class="text-sm font-medium"
+                                >Additional Notes</Label
+                            >
                             <textarea
                                 v-model="additionalNotes"
                                 rows="4"
@@ -718,8 +1119,11 @@ const selectedProductDisplay = computed(() => {
                             />
                         </div>
                         <div v-if="termsActive" class="mt-4">
-                            <Label class="text-sm font-medium">Terms & Conditions</Label>
+                            <Label class="text-sm font-medium"
+                                >Terms & Conditions</Label
+                            >
                             <textarea
+                                v-model="termsAndConditions"
                                 class="mt-2 w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                                 placeholder="Enter terms and conditions..."
                                 rows="4"
@@ -740,20 +1144,37 @@ const selectedProductDisplay = computed(() => {
                 </Card>
 
                 <!-- Right: Summary + Signature -->
-                <Card class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm">
+                <Card
+                    class="overflow-hidden rounded-xl border border-sidebar-border/70 bg-card shadow-sm"
+                >
                     <CardContent class="space-y-5 p-6">
                         <div class="space-y-3 text-sm">
                             <div class="flex justify-between">
-                                <span class="text-muted-foreground">Amount</span>
-                                <span class="font-medium tabular-nums">{{ currencySymbol }}{{ subtotalAmount.toFixed(2) }}</span>
+                                <span class="text-muted-foreground"
+                                    >Amount</span
+                                >
+                                <span class="font-medium tabular-nums"
+                                    >{{ currencySymbol
+                                    }}{{ subtotalAmount.toFixed(2) }}</span
+                                >
                             </div>
                             <div v-if="enableTax" class="flex justify-between">
-                                <span class="text-muted-foreground">CGST (9%)</span>
-                                <span class="font-medium tabular-nums">{{ currencySymbol }}{{ cgstAmount.toFixed(2) }}</span>
+                                <span class="text-muted-foreground"
+                                    >CGST (9%)</span
+                                >
+                                <span class="font-medium tabular-nums"
+                                    >{{ currencySymbol
+                                    }}{{ cgstAmount.toFixed(2) }}</span
+                                >
                             </div>
                             <div v-if="enableTax" class="flex justify-between">
-                                <span class="text-muted-foreground">SGST (9%)</span>
-                                <span class="font-medium tabular-nums">{{ currencySymbol }}{{ sgstAmount.toFixed(2) }}</span>
+                                <span class="text-muted-foreground"
+                                    >SGST (9%)</span
+                                >
+                                <span class="font-medium tabular-nums"
+                                    >{{ currencySymbol
+                                    }}{{ sgstAmount.toFixed(2) }}</span
+                                >
                             </div>
                             <button
                                 type="button"
@@ -762,8 +1183,12 @@ const selectedProductDisplay = computed(() => {
                                 <Plus class="size-4" />
                                 Add Additional Charges
                             </button>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-muted-foreground">Discount</span>
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <span class="text-muted-foreground"
+                                    >Discount</span
+                                >
                                 <div class="flex items-center gap-1">
                                     <Input
                                         v-model.number="discountPercent"
@@ -775,38 +1200,68 @@ const selectedProductDisplay = computed(() => {
                                     <span class="text-muted-foreground">%</span>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-muted-foreground">Round Off Total</span>
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <span class="text-muted-foreground"
+                                    >Round Off Total</span
+                                >
                                 <div class="flex items-center gap-3">
                                     <Switch v-model:checked="roundOffTotal" />
-                                    <span class="font-semibold tabular-nums">{{ currencySymbol }}{{ total }}</span>
+                                    <span class="font-semibold tabular-nums"
+                                        >{{ currencySymbol }}{{ total }}</span
+                                    >
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between border-t border-sidebar-border/50 pt-3">
-                                <span class="font-semibold">Total ({{ currency }})</span>
-                                <span class="font-bold tabular-nums">{{ currencySymbol }}{{ total }}</span>
+                            <div
+                                class="flex items-center justify-between border-t border-sidebar-border/50 pt-3"
+                            >
+                                <span class="font-semibold"
+                                    >Total ({{ currency }})</span
+                                >
+                                <span class="font-bold tabular-nums"
+                                    >{{ currencySymbol }}{{ total }}</span
+                                >
                             </div>
                             <div>
-                                <span class="text-muted-foreground">Total In Words</span>
-                                <p class="mt-0.5 text-sm">{{ numberToWords(total) }}</p>
+                                <span class="text-muted-foreground"
+                                    >Total In Words</span
+                                >
+                                <p class="mt-0.5 text-sm">
+                                    {{ numberToWords(total) }}
+                                </p>
                             </div>
                         </div>
-                        <div class="space-y-4 border-t border-sidebar-border/50 pt-5">
+                        <div
+                            class="space-y-4 border-t border-sidebar-border/50 pt-5"
+                        >
                             <div>
-                                <Label class="text-sm font-medium">Select Signature</Label>
+                                <Label class="text-sm font-medium"
+                                    >Select Signature</Label
+                                >
                                 <select
                                     v-model="selectedSignatureId"
                                     class="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                                 >
                                     <option value="">Select Signature</option>
-                                    <option v-for="s in signatures" :key="s.id" :value="s.id">
+                                    <option
+                                        v-for="s in signatures"
+                                        :key="s.id"
+                                        :value="s.id"
+                                    >
                                         {{ s.name }}
                                     </option>
                                 </select>
                             </div>
-                            <div class="text-center text-sm text-muted-foreground">OR</div>
+                            <div
+                                class="text-center text-sm text-muted-foreground"
+                            >
+                                OR
+                            </div>
                             <div>
-                                <Label class="text-sm font-medium">Signature Name</Label>
+                                <Label class="text-sm font-medium"
+                                    >Signature Name</Label
+                                >
                                 <Input
                                     v-model="signatureName"
                                     class="mt-2 rounded-lg"
@@ -822,15 +1277,64 @@ const selectedProductDisplay = computed(() => {
                 </Card>
             </div>
 
+            <!-- Validation errors -->
+            <div
+                v-if="Object.keys(errors).length"
+                class="rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+            >
+                <p class="mb-2 text-sm font-medium text-destructive">
+                    Please fix the following errors:
+                </p>
+                <ul class="list-inside list-disc text-sm text-destructive">
+                    <li v-for="(msg, key) in errors" :key="key">
+                        {{ msg }}
+                    </li>
+                </ul>
+            </div>
+
             <!-- Cancel & Save buttons -->
-            <div class="flex justify-end gap-3 border-t border-sidebar-border/50 pt-6">
-                <Button variant="outline" class="rounded-lg">
+            <div
+                class="flex justify-end gap-3 border-t border-sidebar-border/50 pt-6"
+            >
+                <Link
+                    href="/sales/invoices"
+                    class="inline-flex items-center justify-center rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium"
+                >
                     Cancel
+                </Link>
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="rounded-lg"
+                    :disabled="processing"
+                    @click="submitInvoice('draft')"
+                >
+                    <Loader2
+                        v-if="processing"
+                        class="mr-2 size-4 animate-spin"
+                    />
+                    Save as Draft
                 </Button>
-                <Button class="rounded-lg">
+                <Button
+                    type="button"
+                    class="rounded-lg"
+                    :disabled="processing"
+                    @click="submitInvoice('sent')"
+                >
+                    <Loader2
+                        v-if="processing"
+                        class="mr-2 size-4 animate-spin"
+                    />
                     Save
                 </Button>
             </div>
         </div>
+
+        <!-- Invoice Preview Modal -->
+        <InvoicePreviewModal
+            v-model:open="showPreview"
+            :data="previewData"
+            :template-id="selectedTemplateId"
+        />
     </AppLayout>
 </template>

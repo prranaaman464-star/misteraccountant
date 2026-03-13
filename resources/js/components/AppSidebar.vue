@@ -118,12 +118,22 @@ const manageNavItems: NavItem[] = [
                 href: '/sales/invoices',
                 items: [
                     {
+                        title: 'Invoice',
+                        href: '/sales/invoices',
+                        activeWhen: (path) =>
+                            /^\/sales\/invoices\/[^/]+$/.test(path) &&
+                            !['create', 'templates', 'recurring'].includes(
+                                path.split('/').pop() ?? '',
+                            ),
+                    },
+                    {
                         title: 'Create Invoice',
                         href: '/sales/invoices/create',
                     },
                     {
                         title: 'Invoice Details',
-                        href: '/sales/invoices',
+                        href: '/sales/invoices-details',
+                        activeWhen: (path) => path === '/sales/invoices-details',
                     },
                     {
                         title: 'Invoice Templates',

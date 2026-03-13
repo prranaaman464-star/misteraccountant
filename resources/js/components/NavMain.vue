@@ -27,10 +27,17 @@ withDefaults(
     { label: 'Platform' },
 );
 
-const { isCurrentUrl } = useCurrentUrl();
+const { isCurrentUrl, currentUrl } = useCurrentUrl();
+
+function isSubItemActive(sub: NavSubItem): boolean {
+    if (sub.activeWhen) {
+        return sub.activeWhen(currentUrl.value);
+    }
+    return isCurrentUrl(sub.href);
+}
 
 function hasActiveChild(sub: NavSubItem): boolean {
-    if (isCurrentUrl(sub.href)) return true;
+    if (isSubItemActive(sub)) return true;
     return sub.items?.some(hasActiveChild) ?? false;
 }
 
@@ -94,9 +101,7 @@ function hasActiveItem(items: NavSubItem[]): boolean {
                                                 <SidebarMenuSubButton
                                                     as-child
                                                     :is-active="
-                                                        isCurrentUrl(
-                                                            nested.href,
-                                                        )
+                                                        isSubItemActive(nested)
                                                     "
                                                 >
                                                     <Link
@@ -133,7 +138,7 @@ function hasActiveItem(items: NavSubItem[]): boolean {
                                 <SidebarMenuSubButton
                                     v-else
                                     as-child
-                                    :is-active="isCurrentUrl(sub.href)"
+                                    :is-active="isSubItemActive(sub)"
                                 >
                                     <Link
                                         :href="sub.href"
