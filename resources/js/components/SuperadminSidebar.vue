@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import {
+    Activity,
     Building2,
     CreditCard,
     DollarSign,
@@ -53,6 +54,12 @@ const superadminNavItems: NavItem[] = [
         title: 'Purchase Transaction',
         href: superadmin.purchaseTransaction?.index?.url?.() ?? '/superadmin/purchase-transaction',
         icon: ShoppingCart,
+    },
+    {
+        title: 'Pulse',
+        href: '/pulse',
+        icon: Activity,
+        external: true,
     },
 ];
 
