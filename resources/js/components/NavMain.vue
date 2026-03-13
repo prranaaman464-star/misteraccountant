@@ -171,10 +171,23 @@ function hasActiveItem(items: NavSubItem[]): boolean {
                     :is-active="isCurrentUrl(item.href)"
                     :tooltip="item.title"
                 >
-                    <Link :href="item.href">
+                    <Link
+                        v-if="!item.external"
+                        :href="item.href"
+                    >
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
                     </Link>
+                    <a
+                        v-else
+                        :href="item.href"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="flex flex-1 items-center gap-2"
+                    >
+                        <component :is="item.icon" />
+                        <span>{{ item.title }}</span>
+                    </a>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>

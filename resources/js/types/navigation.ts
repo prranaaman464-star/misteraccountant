@@ -22,4 +22,6 @@ export type NavItem = {
     icon?: LucideIcon;
     isActive?: boolean;
     items?: NavSubItem[];
+    /** Open in new tab (full page) instead of Inertia navigation */
+    external?: boolean;
 };
