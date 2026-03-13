@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import InvoiceTemplate1 from '@/components/invoice-templates/InvoiceTemplate1.vue';
+import InvoiceTemplate2 from '@/components/invoice-templates/InvoiceTemplate2.vue';
+import InvoiceTemplate3 from '@/components/invoice-templates/InvoiceTemplate3.vue';
+import InvoiceTemplate4 from '@/components/invoice-templates/InvoiceTemplate4.vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogScrollContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import InvoiceTemplate1 from '@/components/invoice-templates/InvoiceTemplate1.vue';
-import InvoiceTemplate2 from '@/components/invoice-templates/InvoiceTemplate2.vue';
-import InvoiceTemplate3 from '@/components/invoice-templates/InvoiceTemplate3.vue';
-import InvoiceTemplate4 from '@/components/invoice-templates/InvoiceTemplate4.vue';
 import type { InvoiceTemplateType } from '@/composables/useInvoiceTemplate';
 
 type LineItem = {
