@@ -12,6 +12,8 @@ export type NavSubItem = {
     badge?: string;
     badgeIcon?: LucideIcon;
     items?: NavSubItem[];
+    /** Custom function to determine if this item is active. Receives current pathname. */
+    activeWhen?: (currentPath: string) => boolean;
 };
 
 export type NavItem = {

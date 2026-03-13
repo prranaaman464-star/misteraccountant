@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowUpFromLine,
     Check,
@@ -45,6 +45,7 @@ type InvoiceStatus =
 
 type Invoice = {
     id: string;
+    invoice_number?: string;
     customer: { name: string; avatar: string | null };
     created_on: string;
     amount: number;
@@ -52,6 +53,7 @@ type Invoice = {
     status: InvoiceStatus;
     payment_mode: string;
     due_date: string;
+    currency?: string;
 };
 
 type TeamMember = { id: number; name: string };
@@ -83,6 +85,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Invoices', href: '/sales/invoices' },
 ];
 
+const page = usePage();
+const flash = page.props.flash as { success?: string; error?: string } | undefined;
+
 const activeTab = ref<InvoiceStatus | 'all'>('all');
 const searchQuery = ref('');
 const sortBy = ref('latest');
@@ -101,10 +106,10 @@ const tabs: { key: InvoiceStatus | 'all'; label: string }[] = [
     { key: 'draft', label: 'Draft' },
 ];
 
-function formatPrice(value: number): string {
+function formatPrice(value: number, currency = 'INR'): string {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
-        currency: 'INR',
+        currency,
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(value);
@@ -175,9 +180,13 @@ const filteredInvoices = computed(() => {
     if (searchQuery.value.trim()) {
         const q = searchQuery.value.toLowerCase();
         list = list.filter(
-            (i) =>
-                i.id.toLowerCase().includes(q) ||
-                i.customer.name.toLowerCase().includes(q),
+            (i) => {
+                const idNum = i.invoice_number ?? i.id;
+                return (
+                    idNum.toString().toLowerCase().includes(q) ||
+                    i.customer.name.toLowerCase().includes(q)
+                );
+            },
         );
     }
     return list;
@@ -190,6 +199,20 @@ const filteredInvoices = computed(() => {
         <div
             class="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6"
         >
+            <!-- Flash messages -->
+            <div
+                v-if="flash?.success"
+                class="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400"
+            >
+                {{ flash.success }}
+            </div>
+            <div
+                v-if="flash?.error"
+                class="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+                {{ flash.error }}
+            </div>
+
             <!-- Header: Title + Actions -->
             <div
                 class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
@@ -453,7 +476,12 @@ const filteredInvoices = computed(() => {
                                 />
                             </td>
                             <td class="px-4 py-3 font-medium">
-                                {{ inv.id }}
+                                <Link
+                                    :href="`/sales/invoices/${inv.id}`"
+                                    class="text-primary hover:underline"
+                                >
+                                    {{ inv.invoice_number ?? inv.id }}
+                                </Link>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
@@ -478,10 +506,10 @@ const filteredInvoices = computed(() => {
                                 {{ formatDate(inv.created_on) }}
                             </td>
                             <td class="px-4 py-3 font-medium">
-                                {{ formatPrice(inv.amount) }}
+                                {{ formatPrice(inv.amount, inv.currency) }}
                             </td>
                             <td class="px-4 py-3">
-                                {{ formatPrice(inv.paid) }}
+                                {{ formatPrice(inv.paid, inv.currency) }}
                             </td>
                             <td class="px-4 py-3">
                                 <Badge
@@ -499,7 +527,7 @@ const filteredInvoices = computed(() => {
                                 {{ inv.payment_mode }}
                             </td>
                             <td class="px-4 py-3 text-muted-foreground">
-                                {{ formatDate(inv.due_date).split(' ')[0] }}
+                                {{ inv.due_date && inv.due_date !== '—' ? formatDate(inv.due_date) : '—' }}
                             </td>
                         </tr>
                         <tr v-if="filteredInvoices.length === 0">
